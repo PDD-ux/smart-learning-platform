@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日复习 · 昇思学练 MindSpark</title>
+<link rel="stylesheet" href="prototype.css">
+<style>
+  .review-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+  .flashcard-area { display: flex; flex-direction: column; gap: 20px; }
+  .info-cards { display: flex; flex-direction: column; gap: 20px; }
+  .dist-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .dist-row:last-child { border-bottom: none; }
+  .weak-bar-cta { display: flex; align-items: center; gap: 16px; padding: 20px; }
+</style>
+</head>
+<body>
+  <div class="aurora-bg"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">M</div>
+      <div><div class="name">昇思学练</div><div class="sub">MINDSPARK</div></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">学习空间</div>
+      <a class="sidebar-link" href="dashboard.html">🏠 工作台</a>
+      <a class="sidebar-link" href="import.html">📁 内容库 / 导入</a>
+      <a class="sidebar-link" href="study.html">▶ 学习</a>
+      <a class="sidebar-link active" href="review.html">🔄 复习</a>
+      <a class="sidebar-link" href="graph.html">🕸 图谱看板</a>
+    </div>
+    <div class="sidebar-user">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;">秦</div>
+        <div><div style="font-weight:700;">秦文浩</div><div style="font-size:12px;color:var(--text-muted);">LV.5 · 进阶学者</div></div>
+      </div>
+      <div class="chip">● 端侧推理就绪 · MindSpore</div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <input class="input topbar-search" placeholder="搜索内容、知识点或笔记…">
+    <div class="topbar-tools">
+      <span class="badge streak">🔥 12 天</span>
+      <span class="badge xp">⚡ 3,240 XP</span>
+      <span style="font-size:18px;cursor:pointer;">🔔</span>
+      <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;cursor:pointer;">秦</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>今日复习</h1>
+        <p>SM-2 遗忘曲线排期 · 剩余 8 张 · 预计 12 分钟</p>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <span class="badge streak">🔥 连续答对 5</span>
+        <span class="badge" style="color:var(--accent-text);">+50 XP</span>
+      </div>
+    </div>
+
+    <div class="review-layout">
+      <div class="flashcard-area">
+        <div class="card flashcard" onclick="location.href='flip.html'">
+          <div class="tags">
+            <span class="tag blue">待巩固</span>
+            <span class="tag gray">SM-2 · 间隔 3 天</span>
+          </div>
+          <h2>反向传播中，∂L/∂W 的链式法则展开式是什么？</h2>
+          <p class="hint">提示：从输出层逐层向前，乘以激活函数的导数</p>
+          <p style="color:var(--text-muted);font-size:13px;margin-top:24px;">点击卡片或按空格键翻面查看答案</p>
+        </div>
+
+        <div class="rating-bar">
+          <button class="rating-btn forget">忘记 · 0</button>
+          <button class="rating-btn blur">模糊 · 1</button>
+          <button class="rating-btn hesitate">犹豫 · 2</button>
+          <button class="rating-btn remember">记住 · 3</button>
+        </div>
+
+        <div class="card weak-bar-cta">
+          <div style="font-size:24px;">✨</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;">薄弱点补强 · AI 出题练习</div>
+            <p style="color:var(--text-muted);font-size:13px;">根据 3 个薄弱知识点自动生成选择题 / 判断题 / 简答题，作答后回写掌握度</p>
+          </div>
+          <a href="practice.html"><button class="btn primary">生成练习题</button></a>
+        </div>
+      </div>
+
+      <div class="info-cards">
+        <div class="card" style="padding:24px;text-align:center;">
+          <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:12px;">本次进度</h3>
+          <div class="ring-progress" style="margin:0 auto 12px;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <defs><linearGradient id="ringGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#13DDC4"/><stop offset="100%" stop-color="#2EA7FF"/></linearGradient></defs>
+              <circle class="track" cx="60" cy="60" r="52"/>
+              <circle class="fill" cx="60" cy="60" r="52" stroke="url(#ringGrad2)" stroke-dasharray="326.7" stroke-dashoffset="124.1"/>
+            </svg>
+            <div class="text">62%</div>
+          </div>
+          <div style="font-size:18px;font-weight:700;">5 / 8 张</div>
+          <p style="color:var(--text-muted);font-size:13px;">已用 4 分 12 秒</p>
+        </div>
+
+        <div class="card" style="padding:20px;">
+          <h3 style="font-size:15px;margin-bottom:12px;">闪卡稀有度分布</h3>
+          <div class="dist-row">
+            <span style="color:var(--danger);">困难（ease < 1.7）</span>
+            <span style="font-weight:700;color:var(--danger);">3 张</span>
+          </div>
+          <div class="dist-row">
+            <span style="color:var(--warning);">待巩固</span>
+            <span style="font-weight:700;color:var(--warning);">8 张</span>
+          </div>
+          <div class="dist-row">
+            <span style="color:var(--accent-text);">熟练</span>
+            <span style="font-weight:700;color:var(--accent-text);">46 张</span>
+          </div>
+          <div class="dist-row">
+            <span style="color:var(--primary);">已掌握（graduated）</span>
+            <span style="font-weight:700;color:var(--primary);">81 张</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

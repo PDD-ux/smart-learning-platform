@@ -1,0 +1,12 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { discussionReleased, threadCreate, threadPatch, replyCreate, replyPatch } from '@/lib/discussions/contracts';
+const requestId = '550e8400-e29b-41d4-a716-446655440000';
+const valid = { kind:'question', title:'怎样理解这段课堂？', body:'我的理解\n请帮忙核对。', requestId };
+afterEach((): void => { vi.unstubAllEnvs(); });
+it('keeps the intermediate feature disabled unless explicitly released', (): void => { vi.stubEnv('DISCUSSION_RELEASE_READY','false'); expect(discussionReleased()).toBe(false); vi.stubEnv('DISCUSSION_RELEASE_READY','true'); expect(discussionReleased()).toBe(true); });
+it.each(['<script>bad()</script>','<img src=x>','正文\u0000',' '.repeat(3),'字'.repeat(3001)])('rejects unsafe or invalid public body', (body): void => { expect(threadCreate.safeParse({...valid,body}).success).toBe(false); });
+it('accepts trimmed plain text with an explicit valid zero timestamp', (): void => { expect(threadCreate.parse({...valid,title:' 标题 ',ref:{type:'video',timestampSec:0}}).title).toBe('标题'); });
+it.each([{authorId:'other'},{courseId:'other'},{privateNotes:[]},{ref:{type:'video',timestampSec:0,secret:'no'}}])('rejects grafted private and identity fields', (extra): void => { expect(threadCreate.safeParse({...valid,...extra}).success).toBe(false); });
+it('requires bounded references and request UUIDs', (): void => { expect(threadCreate.safeParse({...valid,requestId:'bad'}).success).toBe(false); expect(threadCreate.safeParse({...valid,ref:{type:'document',page:0}}).success).toBe(false); });
+it('requires a real modification and a positive integer version', (): void => { expect(threadPatch.safeParse({expectedVersion:1}).success).toBe(false); expect(threadPatch.safeParse({expectedVersion:0,solved:true}).success).toBe(false); expect(replyPatch.safeParse({expectedVersion:1,body:'新理解'}).success).toBe(true); });
+it('bounds replies independently and prohibits nested parent identifiers', (): void => { expect(replyCreate.safeParse({body:'字'.repeat(1501),requestId}).success).toBe(false); expect(replyCreate.safeParse({body:'心得',requestId,parentReplyId:requestId}).success).toBe(false); });

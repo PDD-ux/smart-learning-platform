@@ -1,0 +1,2 @@
+import {fail} from './response';
+export function privateResponse<T extends unknown[]>(handler:(...args:T)=>Response|Promise<Response>):(...args:T)=>Promise<Response>{return async(...args:T):Promise<Response>=>{let response:Response;try{response=await handler(...args);}catch{response=fail('INTERNAL','请求暂未完成，请保留输入并重新核对状态。',500);}response.headers.set('Cache-Control','private, no-store');response.headers.set('Vary','Cookie, Authorization');return response;};}

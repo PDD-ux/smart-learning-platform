@@ -1,0 +1,1293 @@
+// ============================================================
+// 智能学习平台 —— PostgreSQL 数据模型（design.md §2.3）
+// 关系型（PostgreSQL 15）+ Prisma ORM
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [pg_trgm]
+}
+
+// ---------- 认证（tasks.md 1.4：真实数据库用户校验） ----------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique // 邮箱或手机号二选一（可空）
+  phone        String?  @unique
+  passwordHash String
+  nickname     String
+  role         String   @default("student") // student | teacher | admin
+  xpTotal      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  urlImportDrafts   UrlImportDraft[]
+  studyTopics       StudyTopic[]
+  contents          LearningContent[]
+  notes             Note[]
+  masteries         Mastery[]
+  progress          LearningProgress[]
+  achievements      UserAchievement[]
+  faceTemplate      FaceTemplate?
+  attendanceRecords AttendanceRecord[]
+  studyPlans        LearningPlan[]
+  liveSessions      LiveSession[]
+  sharedCourses     SharedCourse[]
+  discussionThreads DiscussionThread[]
+  discussionReplies DiscussionReply[]
+  discussionReports DiscussionReport[] @relation("Reporter")
+  handledDiscussionReports DiscussionReport[] @relation("ReportHandler")
+  discussionEvents DiscussionEvent[]
+  notifications Notification[]
+  examQuestions ExamQuestion[] @relation("ExamQuestionOwner")
+  examQuestionReviews ExamQuestionVersion[] @relation("ExamQuestionReviewer")
+  examPapers ExamPaper[]
+  examAttempts ExamAttempt[]
+  examGrades ExamGradeRecord[]
+  examGenerationJobs ExamGenerationJob[]
+  responsibleClassrooms Classroom[]
+  classMemberships ClassMember[]
+  classroomOperations ClassroomOperation[]
+  homeworkDrafts HomeworkDraft[]
+}
+
+model HomeworkDraft {
+  id String @id
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title String
+  createDigest String
+  source Json
+  state String @default("PROCESSING")
+  revision Int @default(1)
+  rawText String @default("")
+  issues Json @default("[]")
+  questions Json @default("[]")
+  operations Json @default("[]")
+  leaseExpiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  gradingReports HomeworkGradingReport[]
+  @@index([ownerId, createdAt])
+}
+
+model HomeworkGradingReport {
+  id String @id
+  draftId String
+  draft HomeworkDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  requestId String
+  requestDigest String @db.Char(64)
+  sourceDigest String @db.Char(64)
+  sourceRevision Int
+  snapshot Json
+  state String @default("PENDING")
+  revision Int @default(1)
+  result Json?
+  corrections Json @default("[]")
+  operations Json @default("[]")
+  errorCode String?
+  leaseExpiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([draftId, requestId])
+  @@index([draftId, createdAt])
+}
+
+model StudyTopic {
+  id String @id
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createDigest String
+  title String
+  revision Int @default(1)
+  data Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ownerId, createdAt])
+}
+
+model LiveSession {
+  id                    String @id @default(cuid())
+  ownerId               String
+  owner                 User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title                 String
+  state                 String @default("LIVE")
+  nextSequence          Int @default(0)
+  totalSamples          Int @default(0)
+  processingSequence    Int?
+  processingToken       String?
+  processingStartedAt   DateTime?
+  highlights            Json @default("[]")
+  lastHighlightSequence Int @default(-1)
+  highlightVersion      Int @default(0)
+  summaryMarkdown       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  chunks                LiveChunk[]
+  @@index([ownerId, createdAt])
+}
+
+enum SharedCourseState {
+  DRAFT
+  PUBLISHED
+  WITHDRAWN
+}
+
+model SharedCourse {
+  id String @id
+  publisherId String?
+  publisher User? @relation(fields: [publisherId], references: [id], onDelete: SetNull)
+  sourceContentId String?
+  source LearningContent? @relation(fields: [sourceContentId], references: [id], onDelete: SetNull)
+  title String
+  description String
+  contentType ContentType
+  format String
+  durationSec Int?
+  pageCount Int?
+  fileSizeBytes BigInt
+  mediaKey String
+  pageKeys Json @default("{}")
+  snapshot Json
+  include Json
+  rightsStatement String
+  rightsConfirmed Boolean
+  state SharedCourseState @default(DRAFT)
+  discussionEnabled Boolean @default(false)
+  version Int @default(1)
+  preparedAt DateTime?
+  publishedAt DateTime?
+  requestId String
+  requestDigest String
+  discussions DiscussionThread[]
+  notifications Notification[]
+  reports DiscussionReport[]
+  classChapters ClassChapter[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([publisherId, requestId])
+  @@index([state, publishedAt, id])
+  @@index([publisherId, createdAt])
+}
+
+model LiveChunk {
+  id          String @id @default(cuid())
+  sessionId   String
+  session     LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sequence    Int
+  digest      String
+  sampleCount Int
+  startMs     Int
+  endMs       Int
+  state       String @default("RUNNING")
+  text        String @default("")
+  reason      String?
+  createdAt   DateTime @default(now())
+  @@unique([sessionId, sequence])
+}
+
+enum DiscussionKind {
+  QUESTION
+  DISCUSSION
+}
+model DiscussionThread {
+  id String @id
+  courseId String
+  course SharedCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  authorId String?
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  kind DiscussionKind
+  title String
+  body String
+  ref Json?
+  solvedAt DateTime?
+  pinnedAt DateTime?
+  hiddenAt DateTime?
+  deletedAt DateTime?
+  version Int @default(1)
+  createRequestId String
+  requestDigest String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  replies DiscussionReply[]
+  notifications Notification[]
+  reports DiscussionReport[]
+  @@unique([authorId, courseId, createRequestId])
+  @@index([courseId, createdAt, id])
+  @@index([authorId])
+}
+model DiscussionReply {
+  id String @id
+  threadId String
+  thread DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId String?
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body String
+  hiddenAt DateTime?
+  deletedAt DateTime?
+  version Int @default(1)
+  createRequestId String
+  requestDigest String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reports DiscussionReport[]
+  notifications Notification[]
+  @@unique([authorId, threadId, createRequestId])
+  @@index([threadId, createdAt, id])
+  @@index([authorId])
+}
+
+enum DiscussionReportState {
+  OPEN
+  HANDLED
+}
+
+model DiscussionReport {
+  id String @id
+  reporterId String
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  courseId String
+  course SharedCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  threadId String
+  thread DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  replyId String?
+  reply DiscussionReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  targetKey String
+  reason String
+  state DiscussionReportState @default(OPEN)
+  resolution String?
+  handledBy String?
+  handler User? @relation("ReportHandler", fields: [handledBy], references: [id], onDelete: SetNull)
+  handledAt DateTime?
+  version Int @default(1)
+  requestId String
+  requestDigest String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event DiscussionEvent?
+  notifications Notification[]
+  @@unique([reporterId, requestId])
+  @@index([courseId, state, createdAt, id])
+  @@index([reporterId, createdAt, id])
+}
+
+model DiscussionEvent {
+  id String @id
+  recipientId String
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  reportId String @unique
+  report DiscussionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  eventKey String @unique
+  kind String @default("REPORT_RESULT")
+  courseId String
+  threadId String
+  replyId String?
+  createdAt DateTime @default(now())
+  @@index([recipientId, createdAt])
+}
+
+// ---------- 内容模型 ----------
+
+enum NotificationKind {
+  REPLY
+  REPORT_RESULT
+}
+
+model Notification {
+  id String @id
+  recipientId String
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  kind NotificationKind
+  eventKey String @unique
+  courseId String
+  course SharedCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  threadId String
+  thread DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  replyId String?
+  reply DiscussionReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  reportId String?
+  report DiscussionReport? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([recipientId, readAt, createdAt, id])
+}
+
+enum ContentType {
+  VIDEO
+  DOCUMENT
+}
+
+/// 内容导入状态机：待导入 → 上传中 → 解析中 → 已就绪 / 失败
+enum ContentStatus {
+  PENDING // 待导入
+  UPLOADING // 上传中
+  PARSING // 解析中
+  READY // 已就绪
+  FAILED // 失败
+}
+
+/// 端云协同理解状态
+enum UnderstandStatus {
+  NONE
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model LearningContent {
+  examSources ExamQuestionVersion[] @relation("ExamSourceContent")
+  id                  String           @id @default(cuid())
+  ownerId             String
+  owner               User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contentType         ContentType
+  title               String
+  description         String?
+  fileName            String
+  format              String // MP4/MOV/WEBM/MKV/PDF/MD/TXT/PNG/JPEG
+  durationSec         Int? // video
+  pageCount           Int? // document
+  fileSizeBytes       BigInt
+  storageKey          String // 对象存储键
+  coverUrl            String?
+  status              ContentStatus    @default(PENDING)
+  failReason          String?
+  understandingStatus UnderstandStatus @default(NONE)
+  urlSource           Json?
+  urlImportDrafts     UrlImportDraft[]
+  bookState           Json?
+  bookRevision        Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  notes           Note[]
+  transcripts     TranscriptSegment[]
+  textBlocks      TextBlock[]
+  knowledgePoints KnowledgePoint[]
+  flashcards      Flashcard[]
+  exercises       Exercise[]
+  progress        LearningProgress[]
+  asyncJobs       AsyncJob[]
+  graphEdges      GraphEdge[]
+  generatedNote   GeneratedNote?
+  sharedCourses   SharedCourse[]
+  studyPlans      LearningPlan[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ---------- 端云协同产物 ----------
+
+model Note {
+  id        String          @id @default(cuid())
+  ownerId   String
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contentId String
+  lesson    LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  content   String // 正文，非空 ≤5000
+  ref       Json // ContentRef：video{timestampSec} | document{page,blockIndex}
+  version   Int             @default(1) // 乐观锁
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([contentId])
+  @@index([ownerId])
+  @@index([content(ops: raw("gin_trgm_ops"))], type: Gin, map: "Note_content_trgm_idx")
+}
+
+model TranscriptSegment {
+  id        String          @id @default(cuid())
+  contentId String
+  content   LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  seq       Int
+  startMs   Int
+  endMs     Int
+  text      String
+
+  @@unique([contentId, seq])
+  @@index([contentId])
+}
+
+enum TextSource {
+  PDF
+  MD
+  OCR
+  FRAME
+}
+
+model TextBlock {
+  id        String          @id @default(cuid())
+  contentId String
+  content   LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  ref       Json // ContentRef：document{page,blockIndex} 或 video{timestampSec}
+  source    TextSource
+  sequence  Int
+  text      String
+
+  @@index([contentId, sequence])
+}
+
+model KnowledgePoint {
+  examSources ExamQuestionVersion[] @relation("ExamSourcePoint")
+  id         String          @id @default(cuid())
+  contentId  String
+  content    LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  ownerId    String
+  title      String
+  summary    String
+  tags       String[]
+  importance Int // 1-5
+  refs       Json // ContentRef[]
+  createdAt  DateTime        @default(now())
+
+  graphNode  GraphNode?
+  flashcards Flashcard[]
+  exercises  Exercise[]
+  masteries  Mastery[]
+
+  @@index([contentId])
+  @@index([ownerId])
+}
+
+// ---------- 闪卡与复习 ----------
+
+enum CardType {
+  QA
+  CLOZE
+  FORMULA
+}
+
+enum CardStatus {
+  NEW
+  LEARNING
+  REVIEW
+  GRADUATED
+}
+
+model Flashcard {
+  id           String          @id @default(cuid())
+  contentId    String
+  content      LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  ownerId      String
+  pointId      String?
+  point        KnowledgePoint? @relation(fields: [pointId], references: [id], onDelete: SetNull)
+  cardType     CardType        @default(QA)
+  front        String
+  back         String
+  hint         String?
+  status       CardStatus      @default(NEW)
+  easeFactor   Float           @default(2.5) // SM-2
+  intervalDays Float           @default(0)
+  repetitions  Int             @default(0)
+  nextReviewAt DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+
+  reviewLogs ReviewLog[]
+
+  @@index([ownerId, nextReviewAt])
+  @@index([contentId])
+}
+
+model ReviewLog {
+  id           String    @id @default(cuid())
+  flashcardId  String
+  flashcard    Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  rating       Int // 0-3
+  prevInterval Float
+  newInterval  Float
+  streakAfter  Int       @default(0)
+  reviewedAt   DateTime  @default(now())
+
+  @@index([flashcardId])
+}
+
+/// AI 根据解析知识点自动生成的结构化学习笔记；与学习者实时笔记完全分离。
+model GeneratedNote {
+  id          String          @id @default(cuid())
+  contentId   String          @unique
+  content     LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  markdown    String
+  sourceCount Int
+  generatedAt DateTime        @updatedAt
+}
+
+model UserAchievement {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementKey String
+  unlockedAt     DateTime @default(now())
+
+  @@unique([userId, achievementKey])
+  @@index([userId])
+}
+
+// ---------- 掌握度 ----------
+
+model Mastery {
+  id          String         @id @default(cuid())
+  learnerId   String
+  learner     User           @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  pointId     String
+  point       KnowledgePoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  score       Float          @default(0) // 0~1，<0.6 视为薄弱
+  reviewCount Int            @default(0)
+  correctRate Float?
+  isWeak      Boolean        @default(false)
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([learnerId, pointId])
+  @@index([learnerId, isWeak])
+}
+
+// ---------- 知识图谱 ----------
+
+enum NodeType {
+  CONCEPT
+  FORMULA
+  METHOD
+  THEOREM
+}
+
+model GraphNode {
+  id        String         @id @default(cuid())
+  pointId   String         @unique
+  point     KnowledgePoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  nodeType  NodeType       @default(CONCEPT)
+  aliases   String[]       @default([])
+  createdAt DateTime       @default(now())
+
+  outEdges GraphEdge[] @relation("GraphOut")
+  inEdges  GraphEdge[] @relation("GraphIn")
+}
+
+enum EdgeRelation {
+  PREREQUISITE
+  RELATED
+  EXAMPLE_OF
+}
+
+model GraphEdge {
+  id            String           @id @default(cuid())
+  sourcePointId String
+  source        GraphNode        @relation("GraphOut", fields: [sourcePointId], references: [pointId], onDelete: Cascade)
+  targetPointId String
+  target        GraphNode        @relation("GraphIn", fields: [targetPointId], references: [pointId], onDelete: Cascade)
+  relation      EdgeRelation
+  weight        Float            @default(1)
+  contentId     String?
+  content       LearningContent? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([sourcePointId])
+  @@index([targetPointId])
+}
+
+// ---------- 练习 ----------
+
+enum ExerciseType {
+  SINGLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model Exercise {
+  id            String          @id @default(cuid())
+  contentId     String
+  content       LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  pointId       String
+  point         KnowledgePoint  @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  type          ExerciseType
+  question      String
+  options       String[]
+  correctAnswer String
+  explanation   String
+  createdAt     DateTime        @default(now())
+
+  records ExerciseRecord[]
+}
+
+model ExerciseRecord {
+  id           String   @id @default(cuid())
+  exerciseId   String
+  exercise     Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  learnerId    String
+  userAnswer   String
+  correct      Boolean
+  masteryDelta Float
+  createdAt    DateTime @default(now())
+
+  @@index([learnerId])
+}
+
+// ---------- 学习进度 ----------
+
+model LearningProgress {
+  id            String          @id @default(cuid())
+  learnerId     String
+  learner       User            @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  contentId     String
+  content       LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  ref           Json // video{positionSec} | document{page,scrollRatio}
+  lastStudiedAt DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([learnerId, contentId])
+}
+
+model LearningPlan {
+  id            String          @id @default(cuid())
+  ownerId       String
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contentId     String
+  content       LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  title         String
+  targetMinutes Int
+  scheduledAt   DateTime
+  remindAt      DateTime
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([ownerId, completedAt, remindAt])
+}
+
+// ---------- 异步任务 ----------
+
+enum JobType {
+  CONTENT_PARSE
+  UNDERSTANDING
+  PRODUCT_GEN
+}
+
+enum JobState {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model AsyncJob {
+  id          String          @id @default(cuid())
+  jobType     JobType
+  contentId   String
+  content     LearningContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  state       JobState        @default(PENDING)
+  attempts    Int             @default(0)
+  errorReason String?
+  traceId     String
+  stage       String?
+  durationMs  Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([contentId])
+  @@index([jobType, state])
+}
+
+// ---------- 审计日志 ----------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String // 操作者（外部用户 ID）
+  objectId  String // 对象 ID（内容/笔记等）
+  action    String // 动作（content.delete / note.export / ...）
+  result    String // success | failure
+  ip        String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([objectId])
+}
+
+// ---------- 人脸签到（敏感个人信息，tasks.md §12.1） ----------
+
+/// 签到结果只记录结论，不包含原图、特征向量或比对分数。
+enum AttendanceStatus {
+  SIGNED_IN
+  SELF_CHECK_IN
+  MANUAL_CONFIRMATION
+}
+
+/// 每位用户最多一份有效的人脸模板。
+///
+/// 特征向量与首次录入照片均使用独立 AES-256-GCM 密钥加密；照片二进制
+/// 仅存在私有对象存储中，数据库只保存对象键、密文认证元数据与到期时间。
+model FaceTemplate {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  encryptedVector    Bytes
+  encryptionIv       Bytes
+  authTag            Bytes
+  keyId              String
+  enrollmentPhotoKey String?
+  photoExpiresAt     DateTime?
+  photoEncryptionIv  Bytes?
+  photoAuthTag       Bytes?
+  photoKeyId         String?
+  modelVersion       String
+  consentVersion     String
+  enrolledAt         DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([photoExpiresAt])
+}
+
+model AttendanceRecord {
+  id                  String           @id @default(cuid())
+  userId              String
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              AttendanceStatus
+  verificationVersion String
+  signedAt            DateTime         @default(now())
+  checkInDay          String?
+
+  @@unique([userId, checkInDay])
+  @@index([userId, signedAt])
+}
+
+/// 仅保存一次性人脸登录挑战的摘要，不保存账号或生物信息。
+model FaceLoginChallenge {
+  tokenHash String @id
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+// ---------- Phase27 独立试卷基础：不复用原Exercise记录 ----------
+enum ExamTrack {
+  CIVIL_SERVICE
+  POSTGRADUATE
+  UNIVERSITY
+}
+enum ExamQuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SUBJECTIVE
+}
+enum ExamContentState {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+enum ExamReviewState {
+  UNREVIEWED
+  APPROVED
+  REJECTED
+}
+enum ExamVisibility {
+  PRIVATE
+  PUBLIC
+}
+enum ExamPaperKind {
+  OFFICIAL
+  MOCK
+  AI_MOCK
+}
+enum ExamPaperState {
+  DRAFT
+  PUBLISHED
+  WITHDRAWN
+}
+enum ExamAttemptState {
+  IN_PROGRESS
+  SUBMITTED
+  PENDING_REVIEW
+  GRADED
+}
+enum ExamGenerationState {
+  QUEUED
+  RUNNING
+  INCOMPLETE
+  READY
+  FAILED
+  CANCELLED
+}
+enum ExamBatchState {
+  QUEUED
+  RUNNING
+  ACCEPTED
+  FAILED
+  CANCELLED
+}
+enum ExamFailureCode {
+  INVALID_JSON
+  QUALITY_REJECTED
+  INSUFFICIENT_EVIDENCE
+  UNAVAILABLE
+  TIMEOUT
+  CANCELLED
+  BUDGET_EXHAUSTED
+}
+
+model ExamSubject {
+  id String @id @default(cuid())
+  track ExamTrack
+  code String
+  name String
+  state ExamContentState @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chapters ExamChapter[]
+  questions ExamQuestion[]
+  papers ExamPaper[]
+  @@unique([track, code])
+  @@index([track, state, name])
+}
+model ExamChapter {
+  id String @id @default(cuid())
+  subjectId String
+  subject ExamSubject @relation(fields:[subjectId], references:[id], onDelete:Restrict)
+  code String
+  name String
+  state ExamContentState @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  questions ExamQuestion[]
+  @@unique([subjectId, code])
+  @@unique([id, subjectId])
+}
+model ExamQuestion {
+  id String @id @default(cuid())
+  ownerId String?
+  owner User? @relation("ExamQuestionOwner", fields:[ownerId], references:[id], onDelete:SetNull)
+  subjectId String
+  subject ExamSubject @relation(fields:[subjectId], references:[id], onDelete:Restrict)
+  chapterId String?
+  chapter ExamChapter? @relation(fields:[chapterId, subjectId], references:[id, subjectId], onDelete:Restrict, onUpdate:NoAction)
+  visibility ExamVisibility @default(PRIVATE)
+  state ExamContentState @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions ExamQuestionVersion[]
+  @@index([subjectId, visibility, state, createdAt])
+  @@index([ownerId, state])
+}
+model ExamQuestionVersion {
+  id String @id @default(cuid())
+  questionId String
+  question ExamQuestion @relation(fields:[questionId], references:[id], onDelete:Restrict)
+  versionNo Int
+  type ExamQuestionType
+  difficulty Int
+  body Json
+  source Json
+  sourceContentId String?
+  sourceContent LearningContent? @relation("ExamSourceContent", fields:[sourceContentId], references:[id], onDelete:SetNull)
+  sourcePointId String?
+  sourcePoint KnowledgePoint? @relation("ExamSourcePoint", fields:[sourcePointId], references:[id], onDelete:SetNull)
+  reviewState ExamReviewState @default(UNREVIEWED)
+  reviewedById String?
+  reviewedBy User? @relation("ExamQuestionReviewer", fields:[reviewedById], references:[id], onDelete:SetNull)
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  items ExamPaperItem[]
+  @@unique([questionId, versionNo])
+  @@index([reviewState, type, difficulty])
+}
+model ExamPaper {
+  id String @id @default(cuid())
+  ownerId String?
+  owner User? @relation(fields:[ownerId], references:[id], onDelete:SetNull)
+  subjectId String
+  subject ExamSubject @relation(fields:[subjectId], references:[id], onDelete:Restrict)
+  visibility ExamVisibility @default(PRIVATE)
+  state ExamPaperState @default(DRAFT)
+  publishedVersionId String?
+  publishedVersion ExamPaperVersion? @relation("ExamPublishedVersion", fields:[publishedVersionId, id], references:[id, paperId], onDelete:Restrict, onUpdate:NoAction)
+  versions ExamPaperVersion[] @relation("ExamPaperVersions")
+  generationJobs ExamGenerationJob[]
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([subjectId, visibility, state, createdAt])
+  @@index([ownerId, state])
+}
+model ExamPaperVersion {
+  id String @id @default(cuid())
+  paperId String
+  paper ExamPaper @relation("ExamPaperVersions", fields:[paperId], references:[id], onDelete:Restrict)
+  versionNo Int
+  title String
+  description String @default("")
+  kind ExamPaperKind
+  sourceYear Int?
+  durationSec Int
+  questionCount Int
+  totalScoreUnits Int
+  blueprint Json
+  sealedAt DateTime?
+  createdAt DateTime @default(now())
+  publishedFor ExamPaper[] @relation("ExamPublishedVersion")
+  sections ExamPaperSection[]
+  items ExamPaperItem[]
+  attempts ExamAttempt[]
+  @@unique([paperId, versionNo])
+  @@unique([id, paperId])
+}
+model ExamPaperSection {
+  id String @id @default(cuid())
+  paperVersionId String
+  paperVersion ExamPaperVersion @relation(fields:[paperVersionId], references:[id], onDelete:Cascade)
+  sequence Int
+  title String
+  type ExamQuestionType
+  questionCount Int
+  scorePerQuestionUnits Int
+  items ExamPaperItem[]
+  @@unique([paperVersionId, sequence])
+  @@unique([id, paperVersionId])
+}
+model ExamPaperItem {
+  id String @id @default(cuid())
+  paperVersionId String
+  paperVersion ExamPaperVersion @relation(fields:[paperVersionId], references:[id], onDelete:Cascade)
+  sectionId String
+  section ExamPaperSection @relation(fields:[sectionId, paperVersionId], references:[id, paperVersionId], onDelete:Restrict, onUpdate:NoAction)
+  questionVersionId String?
+  questionVersion ExamQuestionVersion? @relation(fields:[questionVersionId], references:[id], onDelete:SetNull)
+  sequence Int
+  scoreUnits Int
+  body Json
+  source Json
+  answers ExamAnswer[]
+  @@unique([paperVersionId, sequence])
+  @@unique([id, paperVersionId])
+}
+model ExamAttempt {
+  id String @id @default(cuid())
+  learnerId String
+  learner User @relation(fields:[learnerId], references:[id], onDelete:Cascade)
+  paperVersionId String
+  paperVersion ExamPaperVersion @relation(fields:[paperVersionId], references:[id], onDelete:Restrict)
+  state ExamAttemptState @default(IN_PROGRESS)
+  requestId String @db.Uuid
+  requestDigest String
+  revision Int @default(0)
+  startedAt DateTime @default(now())
+  deadlineAt DateTime
+  submittedAt DateTime?
+  gradedAt DateTime?
+  totalScoreUnits Int
+  objectiveScoreUnits Int?
+  pendingScoreUnits Int?
+  finalScoreUnits Int?
+  referenceOnly Boolean
+  questionOrder Json
+  optionOrder Json
+  answers ExamAnswer[]
+  @@unique([learnerId, requestId])
+  @@unique([id, paperVersionId])
+  @@index([learnerId, startedAt])
+  @@index([state, deadlineAt])
+}
+model ExamAnswer {
+  id String @id @default(cuid())
+  attemptId String
+  paperVersionId String
+  attempt ExamAttempt @relation(fields:[attemptId, paperVersionId], references:[id, paperVersionId], onDelete:Cascade, onUpdate:NoAction)
+  paperItemId String
+  paperItem ExamPaperItem @relation(fields:[paperItemId, paperVersionId], references:[id, paperVersionId], onDelete:Restrict, onUpdate:NoAction)
+  answer Json?
+  marked Boolean @default(false)
+  revision Int @default(0)
+  scoreUnits Int?
+  correct Boolean?
+  feedback String?
+  updatedAt DateTime @updatedAt
+  grades ExamGradeRecord[]
+  @@unique([attemptId, paperItemId])
+}
+model ExamGradeRecord {
+  id String @id @default(cuid())
+  answerId String
+  answer ExamAnswer @relation(fields:[answerId], references:[id], onDelete:Cascade)
+  graderId String?
+  grader User? @relation(fields:[graderId], references:[id], onDelete:SetNull)
+  scoreUnits Int
+  feedback String
+  requestId String @db.Uuid
+  requestDigest String
+  createdAt DateTime @default(now())
+  @@unique([answerId, requestId])
+}
+model ExamGenerationJob {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields:[ownerId], references:[id], onDelete:Cascade)
+  paperId String?
+  paper ExamPaper? @relation(fields:[paperId], references:[id], onDelete:SetNull)
+  state ExamGenerationState @default(QUEUED)
+  requestId String @db.Uuid
+  requestDigest String
+  blueprint Json
+  requestedCount Int
+  acceptedCount Int @default(0)
+  rejectedCount Int @default(0)
+  callBudget Int
+  usedCalls Int @default(0)
+  revision Int @default(0)
+  leaseToken String? @db.Uuid
+  leaseExpiresAt DateTime?
+  deadlineAt DateTime
+  cancelRequestedAt DateTime?
+  failureCode ExamFailureCode?
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  finishedAt DateTime?
+  batches ExamGenerationBatch[]
+  @@unique([ownerId, requestId])
+  @@index([ownerId, createdAt])
+  @@index([state, leaseExpiresAt])
+}
+model ExamGenerationBatch {
+  id String @id @default(cuid())
+  jobId String
+  job ExamGenerationJob @relation(fields:[jobId], references:[id], onDelete:Cascade)
+  sequence Int
+  targetCount Int
+  acceptedCount Int @default(0)
+  attempts Int @default(0)
+  state ExamBatchState @default(QUEUED)
+  candidates Json @default("[]")
+  failureCode ExamFailureCode?
+  updatedAt DateTime @updatedAt
+  @@unique([jobId, sequence])
+}
+
+model UrlImportDraft {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  requestId String
+  requestDigest String
+  state String @default("FETCHING")
+  requestedUrl String
+  prepared Json?
+  snapshot Bytes?
+  errorCode String?
+  contentId String?
+  content LearningContent? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([ownerId, requestId])
+  @@index([ownerId, expiresAt])
+  @@index([state, expiresAt])
+}
+
+// ---------- Phase29.4 独立班级与作业基础 ----------
+enum ClassroomState {
+  ACTIVE
+  ARCHIVED
+}
+enum ClassMemberState {
+  ACTIVE
+  LEFT
+  REMOVED
+}
+enum ClassPublicationState {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  WITHDRAWN
+}
+enum AssignmentSubmissionState {
+  DRAFT
+  SUBMITTED
+  RETURNED
+  GRADED
+}
+enum AssignmentReviewState {
+  RETURNED
+  GRADED
+}
+enum AssignmentAttachmentState {
+  UPLOADING
+  READY
+  ATTACHED
+  DELETED
+}
+
+model Classroom {
+  id String @id @default(cuid())
+  responsibleId String
+  responsible User @relation(fields: [responsibleId], references: [id], onDelete: Restrict)
+  title String
+  description String @default("")
+  state ClassroomState @default(ACTIVE)
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members ClassMember[]
+  invites ClassInvite[]
+  chapters ClassChapter[]
+  assignments ClassAssignment[]
+  reviews AssignmentReview[]
+  operations ClassroomOperation[]
+  @@unique([id, responsibleId])
+  @@index([responsibleId, state, createdAt])
+}
+
+model ClassMember {
+  classroomId String
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  studentId String
+  student User @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  state ClassMemberState @default(ACTIVE)
+  revision Int @default(1)
+  joinedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  submissions AssignmentSubmission[]
+  @@id([classroomId, studentId])
+  @@index([studentId, state, joinedAt])
+}
+
+model ClassInvite {
+  id String @id @default(cuid())
+  classroomId String
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  codeHash String @unique @db.Char(64)
+  expiresAt DateTime
+  maxUses Int
+  usedCount Int @default(0)
+  revokedAt DateTime?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  @@index([classroomId, expiresAt])
+}
+
+model ClassChapter {
+  id String @id @default(cuid())
+  classroomId String
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  title String
+  body String @default("")
+  sequence Int
+  state ClassPublicationState @default(DRAFT)
+  sharedCourseId String?
+  sharedCourse SharedCourse? @relation(fields: [sharedCourseId], references: [id], onDelete: Restrict)
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assignments ClassAssignment[]
+  @@unique([classroomId, sequence])
+  @@unique([id, classroomId])
+  @@index([classroomId, state])
+}
+
+model ClassAssignment {
+  id String @id @default(cuid())
+  classroomId String
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  chapterId String?
+  chapter ClassChapter? @relation(fields: [chapterId, classroomId], references: [id, classroomId], onDelete: Restrict, onUpdate: NoAction)
+  title String
+  instructions String @default("")
+  state ClassPublicationState @default(DRAFT)
+  dueAt DateTime?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  submissions AssignmentSubmission[]
+  @@unique([id, classroomId])
+  @@index([classroomId, state, dueAt])
+}
+
+model AssignmentSubmission {
+  id String @id @default(cuid())
+  classroomId String
+  assignmentId String
+  assignment ClassAssignment @relation(fields: [assignmentId, classroomId], references: [id, classroomId], onDelete: Restrict, onUpdate: NoAction)
+  studentId String
+  member ClassMember @relation(fields: [classroomId, studentId], references: [classroomId, studentId], onDelete: Restrict, onUpdate: NoAction)
+  state AssignmentSubmissionState @default(DRAFT)
+  draftText String @default("")
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions SubmissionVersion[]
+  attachments AssignmentAttachment[]
+  @@unique([assignmentId, studentId])
+  @@unique([id, classroomId, studentId])
+  @@index([classroomId, state])
+}
+
+model SubmissionVersion {
+  id String @id @default(cuid())
+  submissionId String
+  classroomId String
+  studentId String
+  submission AssignmentSubmission @relation(fields: [submissionId, classroomId, studentId], references: [id, classroomId, studentId], onDelete: Restrict, onUpdate: NoAction)
+  versionNo Int
+  bodyText String
+  assignmentTitle String
+  instructionsSnapshot String
+  dueAtSnapshot DateTime
+  assignmentRevision Int
+  submittedAt DateTime @default(now())
+  review AssignmentReview?
+  attachments AssignmentAttachment[]
+  @@unique([submissionId, versionNo])
+  @@unique([id, classroomId])
+  @@unique([id, submissionId, classroomId, studentId])
+}
+
+model AssignmentReview {
+  id String @id @default(cuid())
+  versionId String @unique
+  classroomId String
+  version SubmissionVersion @relation(fields: [versionId, classroomId], references: [id, classroomId], onDelete: Restrict, onUpdate: NoAction)
+  reviewerId String
+  classroom Classroom @relation(fields: [classroomId, reviewerId], references: [id, responsibleId], onDelete: Restrict, onUpdate: NoAction)
+  state AssignmentReviewState
+  score Int?
+  feedback String
+  createdAt DateTime @default(now())
+  @@unique([versionId, classroomId])
+  @@index([classroomId, createdAt])
+}
+
+model AssignmentAttachment {
+  id String @id @default(cuid())
+  submissionId String
+  classroomId String
+  studentId String
+  submission AssignmentSubmission @relation(fields: [submissionId, classroomId, studentId], references: [id, classroomId, studentId], onDelete: Restrict, onUpdate: NoAction)
+  versionId String?
+  version SubmissionVersion? @relation(fields: [versionId, submissionId, classroomId, studentId], references: [id, submissionId, classroomId, studentId], onDelete: Restrict, onUpdate: NoAction)
+  state AssignmentAttachmentState @default(UPLOADING)
+  fileName String
+  mimeType String
+  sizeBytes BigInt
+  sha256 String? @db.Char(64)
+  storageKey String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([submissionId, state])
+  @@index([state, expiresAt])
+}
+
+model ClassroomOperation {
+  id String @id @default(cuid())
+  classroomId String
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  actorId String
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  requestId String @db.Uuid
+  action String
+  inputDigest String @db.Char(64)
+  resultId String
+  createdAt DateTime @default(now())
+  @@unique([actorId, requestId])
+  @@index([classroomId, createdAt])
+}

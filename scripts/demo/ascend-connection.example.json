@@ -1,0 +1,11 @@
+{
+  "host": "ma-user@your-modelarts-host.example",
+  "hostname": "your-modelarts-host.example",
+  "port": 31637,
+  "keyPath": "C:/path/to/your-key.pem",
+  "localPython": "C:/path/to/python.exe",
+  "remotePython": "/home/ma-user/work/your-env/.venv/bin/python",
+  "modelDir": "/home/ma-user/work",
+  "knownHostsPath": ".taskbook-working/ascend-demo/known_hosts",
+  "durationSeconds": 3600
+}

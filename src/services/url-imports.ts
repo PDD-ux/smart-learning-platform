@@ -1,0 +1,3 @@
+import {apiRequest} from './api';
+import type {UrlDraftView} from '@/lib/url-imports/contracts';
+export const urlImports={preview:(requestId:string,url:string,signal?:AbortSignal):Promise<UrlDraftView>=>apiRequest('/api/url-imports',{method:'POST',body:{requestId,url},signal}),read:(requestId:string):Promise<UrlDraftView>=>apiRequest('/api/url-imports/'+encodeURIComponent(requestId)),cancel:(requestId:string):Promise<UrlDraftView>=>apiRequest('/api/url-imports/'+encodeURIComponent(requestId),{method:'DELETE'}),confirm:(requestId:string,mode:'reuse'|'new'):Promise<UrlDraftView>=>apiRequest('/api/url-imports/'+encodeURIComponent(requestId)+'/confirm',{method:'POST',body:{confirmed:true,mode}})};

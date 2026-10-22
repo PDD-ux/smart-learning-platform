@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图谱看板 · 昇思学练 MindSpark</title>
+<link rel="stylesheet" href="prototype.css">
+<style>
+  .graph-layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+  .graph-canvas {
+    height: 560px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .graph-canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(147,129,255,0.08), transparent 60%);
+  }
+  .node {
+    position: absolute;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    text-align: center;
+    border: 2px solid transparent;
+    box-shadow: var(--shadow-md);
+  }
+  .node.center { width: 110px; height: 110px; background: linear-gradient(135deg, #9381FF, #2EA7FF); font-size: 14px; }
+  .node.master { width: 72px; height: 72px; background: var(--accent); color: #000; }
+  .node.good { width: 64px; height: 64px; background: var(--warning); color: #000; }
+  .node.weak { width: 64px; height: 64px; background: transparent; border: 2px dashed var(--danger); color: var(--danger); }
+  .node.okay { width: 56px; height: 56px; background: var(--primary); }
+  .edge { position: absolute; height: 2px; background: rgba(255,255,255,0.12); transform-origin: left center; }
+  .legend { display: flex; gap: 20px; position: absolute; bottom: 20px; left: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .weak-list-card { padding: 20px; }
+  .weak-list-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .weak-list-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+  <div class="aurora-bg"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">M</div>
+      <div><div class="name">昇思学练</div><div class="sub">MINDSPARK</div></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">学习空间</div>
+      <a class="sidebar-link" href="dashboard.html">🏠 工作台</a>
+      <a class="sidebar-link" href="import.html">📁 内容库 / 导入</a>
+      <a class="sidebar-link" href="study.html">▶ 学习</a>
+      <a class="sidebar-link" href="review.html">🔄 复习</a>
+      <a class="sidebar-link active" href="graph.html">🕸 图谱看板</a>
+    </div>
+    <div class="sidebar-user">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;">秦</div>
+        <div><div style="font-weight:700;">秦文浩</div><div style="font-size:12px;color:var(--text-muted);">LV.5 · 进阶学者</div></div>
+      </div>
+      <div class="chip">● 端侧推理就绪 · MindSpore</div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <input class="input topbar-search" placeholder="搜索内容、知识点或笔记…">
+    <div class="topbar-tools">
+      <span class="badge streak">🔥 12 天</span>
+      <span class="badge xp">⚡ 3,240 XP</span>
+      <span style="font-size:18px;cursor:pointer;">🔔</span>
+      <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;cursor:pointer;">秦</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>图谱看板</h1>
+        <p>知识图谱 × 掌握度画像 · 节点越大代表掌握越牢；红色为薄弱点</p>
+      </div>
+      <select class="input" style="width:180px;">
+        <option>深度学习 · 全部章节</option>
+        <option>机器学习基础</option>
+        <option>考研数学</option>
+      </select>
+    </div>
+
+    <div class="graph-layout">
+      <div class="graph-canvas">
+        <svg style="position:absolute;inset:0;width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <line x1="50%" y1="50%" x2="26%" y2="24%" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+          <line x1="50%" y1="50%" x2="74%" y2="26%" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+          <line x1="50%" y1="50%" x2="24%" y2="72%" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+          <line x1="50%" y1="50%" x2="76%" y2="70%" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+          <line x1="50%" y1="50%" x2="50%" y2="85%" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+        </svg>
+        <div class="node center" style="left:50%;top:50%;transform:translate(-50%,-50%);">卷积神经网络</div>
+        <div class="node weak" style="left:26%;top:24%;transform:translate(-50%,-50%);">反向传播</div>
+        <div class="node good" style="left:74%;top:26%;transform:translate(-50%,-50%);">池化</div>
+        <div class="node master" style="left:24%;top:72%;transform:translate(-50%,-50%);">损失函数</div>
+        <div class="node okay" style="left:76%;top:70%;transform:translate(-50%,-50%);">感受野</div>
+        <div class="node good" style="left:50%;top:85%;transform:translate(-50%,-50%);">梯度下降</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#9381FF;"></div>已掌握 ≥ 0.8</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#5FB8FF;"></div>熟练 0.6-0.8</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#FBBF24;"></div>待巩固 < 0.6</div>
+          <div class="legend-item"><div class="legend-dot" style="border:2px dashed var(--danger);background:transparent;"></div>薄弱点</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card weak-list-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 style="font-size:15px;">薄弱点清单</h3>
+            <a href="#" style="font-size:13px;color:var(--primary);">全部 3</a>
+          </div>
+          <div class="weak-list-row">
+            <span>反向传播推导</span>
+            <span style="color:var(--danger);font-weight:700;">0.42</span>
+          </div>
+          <div class="weak-list-row">
+            <span>梯度下降优化器</span>
+            <span style="color:var(--warning);font-weight:700;">0.55</span>
+          </div>
+          <div class="weak-list-row">
+            <span>特征值与对角化</span>
+            <span style="color:var(--warning);font-weight:700;">0.58</span>
+          </div>
+          <button class="btn primary block" style="margin-top:12px;">一键进入薄弱点复习</button>
+        </div>
+
+        <div class="card" style="padding:24px;text-align:center;">
+          <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:12px;">掌握度画像</h3>
+          <div class="ring-progress" style="margin:0 auto 12px;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <defs><linearGradient id="ringGrad3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9381FF"/><stop offset="100%" stop-color="#13DDC4"/></linearGradient></defs>
+              <circle class="track" cx="60" cy="60" r="52"/>
+              <circle class="fill" cx="60" cy="60" r="52" stroke="url(#ringGrad3)" stroke-dasharray="326.7" stroke-dashoffset="71.9"/>
+            </svg>
+            <div class="text">0.78</div>
+          </div>
+          <div style="font-size:16px;font-weight:700;">综合掌握度</div>
+          <p style="color:var(--accent-text);font-size:13px;margin-top:4px;">较上周 +0.04</p>
+          <p style="color:var(--text-muted);font-size:12px;margin-top:4px;">距离 0.85 还差 7 个薄弱点</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

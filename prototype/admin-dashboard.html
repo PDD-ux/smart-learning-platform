@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>平台管理中心 · 设计示意</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff9f0; --surface:#fffdf8; --ink:#26354b; --muted:#8790a0; --line:#e8dfd1; --blue:#4d7cfe; --blue-soft:#edf2ff; --teal:#27b89a; --teal-soft:#e9f8f2; --amber:#f4bd4f; --amber-soft:#fff6df; --coral:#ec6d66; --shadow:0 12px 30px rgba(78,64,43,.07); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font:14px/1.5 "Segoe UI","Microsoft YaHei",sans-serif; }
+    button,a { font:inherit; }
+    a { color:inherit; text-decoration:none; }
+    .layout { min-height:100vh; display:grid; grid-template-columns:258px 1fr; }
+    .sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:0; padding:25px 16px 18px; border-right:1px solid var(--line); background:rgba(255,253,248,.94); }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:750; font-size:18px; }
+    .brand-mark { display:grid; width:42px; height:42px; place-items:center; border:2px solid var(--ink); border-radius:13px; background:#ffdc76; box-shadow:4px 4px 0 #ec8b76; }
+    .brand small { display:block; color:var(--muted); font-size:10px; letter-spacing:.12em; font-weight:600; }
+    .nav-label { margin:45px 12px 12px; color:#a19380; font-size:10px; letter-spacing:.14em; font-weight:800; }
+    .nav { display:grid; gap:7px; }
+    .nav a { display:flex; align-items:center; gap:12px; min-height:46px; padding:0 14px; border:1px solid transparent; border-radius:14px; color:#737f91; }
+    .nav a.active { border-color:#b9c9ff; background:var(--blue-soft); color:#315dd5; box-shadow:4px 4px 0 rgba(77,124,254,.1); font-weight:700; }
+    .nav-icon { width:22px; text-align:center; font-size:18px; }
+    .side-spacer { flex:1; min-height:26px; }
+    .side-note { margin:0 6px 14px; padding:13px; border:1px solid #d8eee5; border-radius:15px; background:#f1faf5; color:#527d70; font-size:12px; }
+    .admin-user { display:flex; align-items:center; gap:10px; padding:12px 5px 0; border-top:1px solid var(--line); }
+    .avatar { display:grid; width:38px; height:38px; flex:none; place-items:center; border:2px solid var(--ink); border-radius:12px; background:#e8efff; box-shadow:3px 3px 0 #efb6a7; font-weight:800; color:#315dd5; }
+    .admin-user strong,.admin-user small { display:block; }
+    .admin-user small { color:var(--muted); font-size:11px; }
+    .main { min-width:0; }
+    .topbar { height:72px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 38px; border-bottom:1px solid rgba(232,223,209,.7); background:rgba(255,253,248,.62); }
+    .crumb { color:var(--muted); font-size:13px; }
+    .top-actions { display:flex; align-items:center; gap:12px; }
+    .role { display:flex; align-items:center; gap:8px; font-weight:650; }
+    .button { min-height:42px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 16px; border:1px solid #d8e1ff; border-radius:12px; background:#fff; color:#315dd5; cursor:pointer; font-weight:650; }
+    .button.primary { border-color:var(--blue); background:var(--blue); color:white; box-shadow:0 4px 0 rgba(49,93,213,.16); }
+    .content { max-width:1500px; margin:0 auto; padding:32px 38px 48px; }
+    .title-row { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin-bottom:26px; }
+    .eyebrow { color:#93856f; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    h1 { margin:7px 0 6px; font-size:29px; line-height:1.2; letter-spacing:-.035em; }
+    .subtitle { margin:0; color:var(--muted); }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .sample-note { display:inline-flex; align-items:center; gap:7px; margin-bottom:20px; padding:7px 11px; border-radius:999px; background:var(--amber-soft); color:#876517; font-size:11px; font-weight:700; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+    .card { border:1px solid var(--line); border-radius:20px; background:var(--surface); box-shadow:var(--shadow); }
+    .metric { position:relative; overflow:hidden; padding:19px 20px 17px; }
+    .metric::after { content:""; position:absolute; right:-16px; top:-22px; width:74px; height:74px; border-radius:50%; background:var(--tone); opacity:.12; }
+    .metric-head { display:flex; justify-content:space-between; align-items:center; color:#778396; font-size:12px; }
+    .metric-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; background:var(--tone-soft); color:var(--tone); font-size:17px; }
+    .metric strong { display:block; margin-top:16px; font-size:31px; line-height:1; letter-spacing:-.04em; }
+    .metric small { display:block; margin-top:10px; color:var(--muted); font-size:11px; }
+    .dashboard-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:18px; margin-top:18px; }
+    .panel { padding:21px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:18px; }
+    .panel h2 { margin:0; font-size:17px; }
+    .panel-desc { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    .text-link { color:#315dd5; font-size:12px; font-weight:700; white-space:nowrap; }
+    .quick-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .quick { min-height:96px; display:flex; align-items:center; gap:13px; padding:15px; border:1px solid var(--line); border-radius:15px; background:#fffaf1; }
+    .quick-icon { width:42px; height:42px; flex:none; display:grid; place-items:center; border-radius:13px; background:var(--blue-soft); color:#315dd5; font-size:19px; }
+    .quick strong,.quick small { display:block; }
+    .quick small { margin-top:3px; color:var(--muted); font-size:11px; }
+    .activity { display:grid; gap:0; }
+    .activity-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; padding:14px 0; border-top:1px solid #f0e9df; }
+    .activity-row:first-child { border-top:0; padding-top:0; }
+    .activity-row strong { display:block; font-size:13px; }
+    .activity-row small { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
+    .pill { padding:5px 9px; border-radius:999px; background:var(--teal-soft); color:#258d75; font-size:10px; font-weight:700; white-space:nowrap; }
+    .pill.admin { background:var(--blue-soft); color:#315dd5; }
+    .lower-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+    .table-head,.table-row { display:grid; grid-template-columns:1.2fr .7fr .8fr; gap:12px; align-items:center; }
+    .table-head { padding:0 0 10px; color:var(--muted); font-size:11px; }
+    .table-row { padding:13px 0; border-top:1px solid #f0e9df; font-size:12px; }
+    .table-row strong { font-size:12px; }
+    .muted { color:var(--muted); }
+    .empty { padding:23px 12px; border:1px dashed #d9d2c6; border-radius:14px; color:var(--muted); text-align:center; font-size:12px; }
+    .footnote { margin:18px 2px 0; color:var(--muted); font-size:11px; }
+    @media (max-width:1050px) { .layout { grid-template-columns:220px 1fr; } .topbar,.content { padding-left:24px; padding-right:24px; } .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .dashboard-grid { grid-template-columns:1fr; } }
+    @media (max-width:700px) { .layout { display:block; } .sidebar { position:static; width:auto; height:auto; padding:14px; border-right:0; border-bottom:1px solid var(--line); } .brand { font-size:16px; } .nav-label { margin:18px 5px 8px; } .nav { grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; } .nav a { min-height:42px; gap:5px; padding:0 7px; font-size:11px; } .nav-icon { width:auto; font-size:15px; } .side-spacer,.side-note { display:none; } .admin-user { display:none; } .topbar { height:56px; padding:0 16px; } .content { padding:22px 14px 32px; } .title-row { align-items:flex-start; flex-direction:column; margin-bottom:18px; } h1 { font-size:24px; } .metrics { gap:9px; } .metric { padding:14px; } .metric strong { font-size:26px; } .metric small { min-height:30px; } .panel { padding:16px; } .quick-grid,.lower-grid { grid-template-columns:1fr; } .quick { min-height:78px; } .table-head,.table-row { grid-template-columns:1fr .7fr; } .table-head span:last-child,.table-row span:last-child { display:none; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark">知</span><span>文豪<small>PLATFORM ADMIN</small></span></a>
+      <div class="nav-label">平台管理</div>
+      <nav class="nav" aria-label="管理员导航">
+        <a class="active" href="/admin"><span class="nav-icon">⌂</span>管理总览</a>
+        <a href="/admin/users"><span class="nav-icon">♙</span>用户管理</a>
+        <a href="/admin/attendance"><span class="nav-icon">▤</span>签到记录</a>
+      </nav>
+      <div class="side-spacer"></div>
+      <div class="side-note">管理员权限已启用<br><span class="muted">账号操作将由服务端校验</span></div>
+      <div class="admin-user"><span class="avatar">管</span><span><strong>平台管理员</strong><small>管理员账号</small></span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><span class="crumb">平台管理 / 管理总览</span><div class="top-actions"><span class="role"><span class="avatar">管</span>管理员</span><button class="button" type="button">退出登录</button></div></header>
+      <div class="content">
+        <div class="title-row">
+          <div><span class="eyebrow">ADMIN OVERVIEW</span><h1>平台管理中心</h1><p class="subtitle">用户与签到情况一眼掌握，常用管理操作一步到位。</p></div>
+          <div class="actions"><a class="button" href="/admin/attendance">查看签到记录 ↗</a><a class="button primary" href="/admin/users">＋ 管理用户</a></div>
+        </div>
+        <div class="sample-note">✦ 设计示意数据，仅用于预览页面布局</div>
+        <section class="metrics" aria-label="平台数据概览">
+          <article class="card metric" style="--tone:#4d7cfe;--tone-soft:#edf2ff"><div class="metric-head"><span>账号总数</span><span class="metric-icon">♙</span></div><strong>128</strong><small>包含学习者与管理员</small></article>
+          <article class="card metric" style="--tone:#27b89a;--tone-soft:#e9f8f2"><div class="metric-head"><span>学习者</span><span class="metric-icon">▣</span></div><strong>124</strong><small>可登录并使用学习功能</small></article>
+          <article class="card metric" style="--tone:#8a72df;--tone-soft:#f0edff"><div class="metric-head"><span>管理员</span><span class="metric-icon">♙</span></div><strong>4</strong><small>具备平台管理权限</small></article>
+          <article class="card metric" style="--tone:#e39a38;--tone-soft:#fff6df"><div class="metric-head"><span>今日签到</span><span class="metric-icon">✓</span></div><strong>36</strong><small>自动签到 32 · 人工确认 4</small></article>
+        </section>
+        <section class="dashboard-grid">
+          <article class="card panel">
+            <div class="panel-head"><div><h2>常用管理</h2><p class="panel-desc">快速进入管理员日常操作</p></div></div>
+            <div class="quick-grid">
+              <a class="quick" href="/admin/users"><span class="quick-icon">♙</span><span><strong>账号花名册</strong><small>搜索、筛选、创建与维护账号</small></span></a>
+              <a class="quick" href="/admin/attendance"><span class="quick-icon" style="background:#e9f8f2;color:#258d75">▤</span><span><strong>签到记录</strong><small>按用户、日期和结果查询</small></span></a>
+            </div>
+          </article>
+          <article class="card panel">
+            <div class="panel-head"><div><h2>管理范围</h2><p class="panel-desc">把平台管理与学习操作清楚分开</p></div><span class="pill admin">仅管理员</span></div>
+            <div class="activity">
+              <div class="activity-row"><span><strong>账号管理</strong><small>查询、创建、编辑和维护用户账号</small></span><span class="nav-icon">♙</span></div>
+              <div class="activity-row"><span><strong>签到记录</strong><small>查看签到结论、时间与验证版本</small></span><span class="nav-icon">▤</span></div>
+              <div class="activity-row"><span><strong>隐私边界</strong><small>不展示原始人脸、特征向量或学习内容</small></span><span class="nav-icon">◇</span></div>
+            </div>
+          </article>
+        </section>
+        <section class="lower-grid">
+          <article class="card panel">
+            <div class="panel-head"><div><h2>最近新增账号</h2><p class="panel-desc">只展示管理所需的账号摘要</p></div><a class="text-link" href="/admin/users">全部账号 ↗</a></div>
+            <div class="table-head"><span>昵称</span><span>角色</span><span>注册时间</span></div>
+            <div class="table-row"><strong>示例学习者</strong><span class="pill">学习者</span><span class="muted">今天 09:12</span></div>
+            <div class="table-row"><strong>示例管理员</strong><span class="pill admin">管理员</span><span class="muted">昨天 16:20</span></div>
+          </article>
+          <article class="card panel">
+            <div class="panel-head"><div><h2>签到概况</h2><p class="panel-desc">今日自动签到与人工确认</p></div><a class="text-link" href="/admin/attendance">查看全部 ↗</a></div>
+            <div class="table-head"><span>签到方式</span><span>数量</span><span>最近记录</span></div>
+            <div class="table-row"><strong>自动签到</strong><span class="pill">32 条</span><span class="muted">08:46</span></div>
+            <div class="table-row"><strong>人工确认</strong><span class="pill admin">4 条</span><span class="muted">08:31</span></div>
+          </article>
+        </section>
+        <p class="footnote">页面正式接入后，统计数据由管理员专用接口按当前数据库实时汇总；本原型中的数字与动态均为示意内容。</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

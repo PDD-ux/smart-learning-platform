@@ -1,0 +1,20 @@
+import { NextRequest } from 'next/server';
+import { afterEach, expect, it, vi } from 'vitest';
+const m = vi.hoisted((): { transaction: ReturnType<typeof vi.fn> } => ({ transaction: vi.fn() }));
+vi.mock('@/lib/prisma', (): object => ({ prisma: { $transaction: m.transaction } }));
+import { signAccessToken } from '@/lib/auth/jwt';
+import { GET } from '@/app/api/notifications/route';
+import { PATCH } from '@/app/api/notifications/[id]/route';
+import { POST } from '@/app/api/notifications/read-all/route';
+import { GET as participated } from '@/app/api/discussions/participated/route';
+import { readAllSchema, readMessageSchema, discussionTarget } from '@/lib/discussions/notifications';
+import { discussionLocation } from '@/lib/domain/discussion-location';
+afterEach((): void => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
+it.each([[async (request: NextRequest): Promise<Response> => GET(request, {}), 'GET'], [async (request: NextRequest): Promise<Response> => PATCH(request, { params: { id: 'missing' } }), 'PATCH'], [async (request: NextRequest): Promise<Response> => POST(request, {}), 'POST'], [async (request: NextRequest): Promise<Response> => participated(request, {}), 'GET']] as const)('keeps closed gate ahead of validation and object lookup', async (handler, method): Promise<void> => {
+  vi.stubEnv('DISCUSSION_RELEASE_READY', 'false'); const token = signAccessToken({ sub: 'message-test', email: 'test@example.test', role: 'student' });
+  const result = await handler(new NextRequest('http://localhost/api/test?page=0', { method, headers: { authorization: 'Bearer '+token }, ...(method === 'GET' ? {} : { body: 'invalid JSON' }) }));
+  expect(result.status).toBe(404); expect(result.headers.get('cache-control')).toBe('private, no-store'); expect(m.transaction).not.toHaveBeenCalled();
+});
+it('does not accept caller supplied owner or unread reset', (): void => { expect(readMessageSchema.safeParse({ read: false }).success).toBe(false); expect(readMessageSchema.safeParse({ read: true, recipientId: 'other' }).success).toBe(false); expect(readAllSchema.safeParse({ before: 'invalid' }).success).toBe(false); expect(readAllSchema.safeParse({ before: '2026-10-14T00:00:00Z', owner: 'other' }).success).toBe(false); });
+it('builds only shared-course targets with current valid source', (): void => { expect(discussionTarget('c', 't', { type: 'video', timestampSec: 1 })).toBe('/courses/c?thread=t&t=1'); expect(discussionTarget('c', 't', { type: 'document', page: 2 })).toBe('/courses/c?thread=t&page=2'); expect(discussionTarget('c', 't', { url: 'https://evil.example' })).toBe('/courses/c?thread=t'); });
+it('rejects duplicate or invalid incoming thread links', (): void => { const id = '550e8400-e29b-41d4-a716-446655440000'; expect(discussionLocation(id)).toBe(id); expect(discussionLocation([id,id])).toBe(''); expect(discussionLocation('private-content-id')).toBe(''); });

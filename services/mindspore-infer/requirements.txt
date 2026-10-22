@@ -1,0 +1,16 @@
+# MindSpore 端侧推理服务 · 基础依赖（tasks.md §5.1）
+# CPU / mock 模式所需；Ascend 专用 wheel 见 requirements-ascend.txt
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+python-multipart>=0.0.9
+numpy>=1.24
+pillow>=10.0
+
+# 本地主力 OCR 引擎：PP-OCRv4 模型 + onnxruntime 纯 CPU 推理，Windows 免编译。
+# 模型随包自带；未安装时服务自动退回 Tesseract / mock，不会启动失败。
+rapidocr-onnxruntime>=1.4.0
+
+# MindSpore 为可选运行时：未安装时服务以 mock 模式运行（INFER_MOCK 默认 true）。
+# 需要真实 CPU 推理时再放开下一行（版本见 https://www.mindspore.cn/install）：
+# mindspore>=2.2.0

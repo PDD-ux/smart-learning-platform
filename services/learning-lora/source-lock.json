@@ -1,0 +1,50 @@
+{
+  "mindformersRevision": "b77980de71ef62d3d38d5926fdcd4e7b669eec94",
+  "files": {
+    "research/qwen2_5/finetune_qwen2_5_1_5b_8k.yaml": {
+      "sha256": "4d4e936486dd02cced52f848a4568d3a09183a68fa826df74ccb708a2bb2c9dd",
+      "bytes": 4360
+    },
+    "research/qwen2_5/qwen2_5_preprocess.py": {
+      "sha256": "c468282ea4d9ca2e7f587cd439f26e1d111bc4fc382441029531f865b1782a2d",
+      "bytes": 6011
+    },
+    "research/qwen2_5/alpaca_converter.py": {
+      "sha256": "77cb701a4c1bc72ad1799ccfc88177c690677dceff7ba02e696c99f635695ca4",
+      "bytes": 1843
+    }
+  },
+  "baseModel": {
+    "id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "license": "apache-2.0"
+  },
+  "scope": "independent bounded pilot; explicit CLI phases only, never automatic product replacement",
+  "expectedEnvironment": {
+    "mindspore": "2.7.1",
+    "mindformers": "1.7.0",
+    "cann": "8.3.RC1",
+    "device": "Ascend 910B4",
+    "hbmGiB": 32
+  },
+  "tokenizerAssets": {
+    "config.json": {
+      "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670",
+      "bytes": 660
+    },
+    "tokenizer_config.json": {
+      "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+      "bytes": 7305
+    },
+    "tokenizer.json": {
+      "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+      "bytes": 7031645
+    }
+  },
+  "weightAssets": {
+    "model.safetensors": {
+      "bytes": 3087467144,
+      "sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee"
+    }
+  }
+}

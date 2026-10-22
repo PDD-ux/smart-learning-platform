@@ -1,0 +1,203 @@
+# ============================================================
+# 文豪智能学习平台 · 一键启动编排
+# 包含：PostgreSQL / Redis / MinIO / Next.js / BullMQ worker / mindspore-infer
+# ============================================================
+# 使用：
+#   docker compose up -d              # 启动全部服务
+#   docker compose logs -f nextjs     # 查看 Next.js 日志
+#   docker compose down               # 停止（保留数据卷）
+#   docker compose down -v            # 停止并清空数据
+# ============================================================
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER must be set}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be set}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379
+  QUEUE_DRIVER: bullmq
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:${MINIO_PORT:-9000}}
+  S3_REGION: us-east-1
+  S3_BUCKET: slp-learning
+  S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+  S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+  S3_FORCE_PATH_STYLE: "true"
+  ASCEND_INFER_URL: http://mindspore-infer:8000
+  ASCEND_INFER_TOKEN: ${INFER_TOKEN:?INFER_TOKEN must be set}
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+  LLM_PROVIDER: ${LLM_PROVIDER:-spark}
+  AGENT_REVIEW_READY: ${AGENT_REVIEW_READY:-false}
+  AGENT_REVIEW_THINKING: ${AGENT_REVIEW_THINKING:-false}
+  SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
+  SPARK_BASE_URL: ${SPARK_BASE_URL:-https://spark-api-open.xf-yun.com/v1}
+  SPARK_MODEL: ${SPARK_MODEL:-lite}
+  METRICS_TOKEN: ${METRICS_TOKEN:-}
+  ASR_PROVIDER: ${ASR_PROVIDER:-xunfei}
+  ASR_API_KEY: ${ASR_API_KEY:-}
+  ASR_APP_ID: ${ASR_APP_ID:-}
+  ASR_BASE_URL: ${ASR_BASE_URL:-https://raasr.xfyun.cn/v2/api}
+  ASR_LANGUAGE: ${ASR_LANGUAGE:-cn}
+  ASR_POLL_INTERVAL_MS: ${ASR_POLL_INTERVAL_MS:-10000}
+  ASR_POLL_MAX_ATTEMPTS: ${ASR_POLL_MAX_ATTEMPTS:-90}
+  ASR_REQUEST_TIMEOUT_MS: ${ASR_REQUEST_TIMEOUT_MS:-60000}
+  APP_URL: ${APP_URL:-http://localhost:${NEXT_PORT:-3000}}
+  SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+  SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+  SEED_ADMIN_NICKNAME: ${SEED_ADMIN_NICKNAME:-管理员}
+  SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-}
+  SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-}
+  SEED_DEMO_NICKNAME: ${SEED_DEMO_NICKNAME:-演示学员}
+
+services:
+  # ---------- PostgreSQL 主数据库 ----------
+  postgres:
+    image: postgres:16-alpine
+    container_name: slp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER must be set}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------- Redis 缓存 + BullMQ 队列 ----------
+  redis:
+    image: redis:7-alpine
+    container_name: slp-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    command: ["/bin/sh", "-ec", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------- MinIO 对象存储（S3 兼容）----------
+  minio:
+    image: minio/minio:latest
+    container_name: slp-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+    ports:
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO 初始化：自动创建 bucket（仅首次启动执行）
+  minio-init:
+    image: minio/mc:latest
+    container_name: slp-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -ec "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set} ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set} &&
+      mc mb --ignore-existing local/slp-learning &&
+      mc anonymous set none local/slp-learning &&
+      printf '[{\"AllowedOrigins\":[\"%s\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"HEAD\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\",\"Content-Length\",\"Content-Range\"],\"MaxAgeSeconds\":3600}]' \"$$CORS_ALLOWED_ORIGIN\" > /tmp/cors.json &&
+      mc cors set local/slp-learning /tmp/cors.json &&
+      echo 'MinIO bucket and CORS policy ready.';
+      "
+    environment:
+      CORS_ALLOWED_ORIGIN: ${APP_URL:-http://localhost:${NEXT_PORT:-3000}}
+
+  # ---------- MindSpore 端侧推理服务（Python）----------
+  mindspore-infer:
+    build:
+      context: ./services/mindspore-infer
+      dockerfile: Dockerfile
+    container_name: slp-mindspore-infer
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      ASCEND_INFER_TOKEN: ${INFER_TOKEN:?INFER_TOKEN must be set}
+      ASCEND_DEVICE: ${ASCEND_DEVICE:-cpu}    # cpu / gpu / ascend
+      INFER_MAX_FRAMES: ${INFER_MAX_FRAMES:-120}
+      INFER_MAX_IMAGE_BYTES: ${INFER_MAX_IMAGE_BYTES:-5242880}
+      INFER_MAX_REQUEST_BYTES: ${INFER_MAX_REQUEST_BYTES:-20971520}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:${INFER_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------- Next.js 主应用 ----------
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slp-nextjs
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      mindspore-infer:
+        condition: service_healthy
+    environment: *app-environment
+    ports:
+      - "${NEXT_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------- BullMQ worker（与 Web 进程隔离，消费三类后台任务） ----------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    container_name: slp-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      mindspore-infer:
+        condition: service_healthy
+    environment:
+      <<: *app-environment
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

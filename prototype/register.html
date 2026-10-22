@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="hkvC7YROebq1KlpKG8kBKm">
+<head data-page-node-id="kAC7DfX2O7Y8WXTJ0Audxw">
+<meta charset="UTF-8" data-page-node-id="a2DjPydwyWJq1v3FOhVJzF">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="cgMFOEiE8w6FYwj2nMwW1R">
+<title>注册 · 文豪智能学习平台</title>
+<link rel="stylesheet" href="prototype.css" data-page-node-id="Bun4Q3lMHPFcjg9dod5Kjo">
+<style>
+  .auth-wrap {
+    min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background: var(--grad-hero); position: relative; overflow: hidden;
+  }
+  .auth-wrap::before {
+    content: ""; position: absolute; left: -80px; top: -80px;
+    width: 340px; height: 340px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,92,240,.5), transparent 70%);
+  }
+  .auth-wrap::after {
+    content: ""; position: absolute; right: -100px; bottom: -100px;
+    width: 400px; height: 400px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,194,168,.35), transparent 70%);
+  }
+  .auth-card { width: 100%; max-width: 440px; position: relative; z-index: 1; }
+  .auth-brand { text-align: center; margin-bottom: 26px; color: #fff; }
+  .auth-brand .logo {
+    width: 60px; height: 60px; border-radius: 18px; margin: 0 auto 14px;
+    background: var(--grad-primary); color: #fff; display: grid; place-items: center;
+    font-size: 30px; font-weight: 700; box-shadow: 0 8px 24px rgba(124,92,240,.5);
+  }
+  .auth-brand h1 { font-size: 22px; font-weight: 700; }
+  .auth-brand p { color: #c7c7e0; font-size: 13px; margin-top: 4px; }
+  .glass {
+    background: rgba(255,255,255,.96); backdrop-filter: blur(20px);
+    border-radius: 20px; box-shadow: var(--shadow-lg); padding: 30px;
+  }
+  .auth-foot { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted); }
+  .code-row { display: flex; gap: 10px; }
+  .code-row .btn { flex-shrink: 0; }
+  .strength { height: 6px; border-radius: 999px; background: #eceaf7; margin-top: 8px; overflow: hidden; }
+  .strength > span { display: block; height: 100%; width: 60%; background: var(--warning); border-radius: 999px; }
+  .strength-hint { font-size: 12px; color: var(--warning); margin-top: 4px; }
+</style>
+</head>
+<body data-page-node-id="Aj240TBZxocJF3xaY8A0zV">
+<div class="auth-wrap" data-page-node-id="hzSAtRYCD5qYx882tcD1Nl">
+  <div class="auth-card" data-page-node-id="jM1iG8elFXGZdeDiqllhgV">
+    <div class="auth-brand" data-page-node-id="sovd3qFmXPorq5NqFNiYnN">
+      <div class="logo" data-page-node-id="2Bfh74XPS3gftR2t9UaTkQ">文</div>
+      <h1 data-page-node-id="E1oSMA2cewpyBodCuYJDiO">创建账号</h1>
+      <p data-page-node-id="FxtiiBgrtfXSIS7t1JAJM3">开始你的端云协同学习之旅</p>
+    </div>
+
+    <div class="glass" data-page-node-id="uBdE83H6jMMIJ5FlpOhSLE">
+      <h2 style="font-size:18px; font-weight:700; margin-bottom:4px" data-page-node-id="s8bhBIKo7tD8r1BQkPWtGa">注册</h2>
+      <div style="color:var(--text-muted); font-size:13px; margin-bottom:22px" data-page-node-id="UprYamYYwCUza7eXmFJGMp">填写以下信息完成注册</div>
+
+      <label class="field" data-page-node-id="V7Tv8NsEcOgHHreDpkZz2n">
+        <span data-page-node-id="sKWT2fpCuvvWYn4kHWEiS7">用户名</span>
+        <input type="text" placeholder="2-20 个字符" data-page-node-id="acGVbHCncCCGGxr9K0cUiQ">
+      </label>
+      <label class="field" data-page-node-id="oNYSlHQ4ONkhnA28TQCvxd">
+        <span data-page-node-id="VMbhSVwmYogfFVq7ESAFQB">邮箱 / 手机号</span>
+        <input type="text" placeholder="用于登录与找回密码" data-page-node-id="Mg6PlNlTYcrjPqE1Y7S02g">
+      </label>
+      <label class="field" data-page-node-id="jEQEW9yocw9ptuD8GGq05x">
+        <span data-page-node-id="ESIGIxRdbjcYUsEETD4fwi">验证码</span>
+        <div class="code-row" data-page-node-id="wPYA1HmGWaiKDQHXH324l8">
+          <input type="text" placeholder="6 位验证码" data-page-node-id="DEVg6RUGMlhjWo09jde27Y">
+          <button class="btn sm" data-page-node-id="rvAzJGCTy9s2n4ZKH71Aqj">发送验证码</button>
+        </div>
+      </label>
+      <label class="field" data-page-node-id="PGIMEH8EEc8viPVnVjrDa1">
+        <span data-page-node-id="bNGTMGTQ3tOl4SKSSW4z4k">密码</span>
+        <input type="password" placeholder="至少 8 位，含字母和数字" data-page-node-id="B3xqe21C2ZtJ9faCFd0RCP">
+        <div class="strength" data-page-node-id="P2qJvN5bjtCTyXTP9Vr3nn"><span data-page-node-id="ydx3lRXlSMdgM4HvPnSSij"></span></div>
+        <div class="strength-hint" data-page-node-id="XvjArTCGxzGvs3mgNVwDHZ">密码强度：中等（建议加入特殊字符）</div>
+      </label>
+      <label class="field" data-page-node-id="xfeU5NPt0gOHJbj7sCyHUi">
+        <span data-page-node-id="2oxQPAhVza1hjqKzerWHwd">确认密码</span>
+        <input type="password" placeholder="再次输入密码" data-page-node-id="tK8jlsjsN4DSv1pVJ3Mq8p">
+      </label>
+
+      <button class="btn primary block" style="padding:12px" data-page-node-id="qgmDoFFI5E0FP2C3IWQtCp">注册</button>
+
+      <div class="auth-foot" data-page-node-id="uAZUGZcpDJy9rIozXw2dtS">
+        已有账号？<a href="index.html" data-page-node-id="ARZ0mQXBugMu7Ke5W5VqOL">直接登录</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

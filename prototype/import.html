@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内容库 / 导入 · 昇思学练 MindSpark</title>
+<link rel="stylesheet" href="prototype.css">
+<style>
+  .upload-card { padding: 48px; text-align: center; }
+  .upload-icon { width: 64px; height: 64px; border-radius: 18px; background: var(--grad-primary); display: grid; place-items: center; margin: 0 auto 20px; font-size: 28px; color: #fff; box-shadow: var(--glow-primary); }
+  .type-tags { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+  .progress-card { padding: 20px 24px; margin-bottom: 16px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .progress-title { font-weight: 700; }
+  .progress-meta { font-size: 12px; color: var(--text-muted); }
+  .public-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+</style>
+</head>
+<body>
+  <div class="aurora-bg"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">M</div>
+      <div><div class="name">昇思学练</div><div class="sub">MINDSPARK</div></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">学习空间</div>
+      <a class="sidebar-link" href="dashboard.html">🏠 工作台</a>
+      <a class="sidebar-link active" href="import.html">📁 内容库 / 导入</a>
+      <a class="sidebar-link" href="study.html">▶ 学习</a>
+      <a class="sidebar-link" href="review.html">🔄 复习</a>
+      <a class="sidebar-link" href="graph.html">🕸 图谱看板</a>
+    </div>
+    <div class="sidebar-user">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;">秦</div>
+        <div><div style="font-weight:700;">秦文浩</div><div style="font-size:12px;color:var(--text-muted);">LV.5 · 进阶学者</div></div>
+      </div>
+      <div class="chip">● 端侧推理就绪 · MindSpore</div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <input class="input topbar-search" placeholder="搜索内容、知识点或笔记…">
+    <div class="topbar-tools">
+      <span class="badge streak">🔥 12 天</span>
+      <span class="badge xp">⚡ 3,240 XP</span>
+      <span style="font-size:18px;cursor:pointer;">🔔</span>
+      <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;cursor:pointer;">秦</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>内容库</h1>
+        <p>导入学习资料，跟踪解析进度，浏览公共内容库</p>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn">⛓ 粘贴 B 站 / 公网视频链接</button>
+        <button class="btn primary">↑ 上传内容</button>
+      </div>
+    </div>
+
+    <!-- 上传区 -->
+    <div class="card upload-card mb-6">
+      <div class="upload-icon">↑</div>
+      <h3 style="font-size:18px;margin-bottom:8px;">拖拽视频、图文或拍照照片到此处，或点击上传</h3>
+      <p style="color:var(--text-muted);max-width:560px;margin:0 auto;">端侧 MindSpore 图像理解 + 云端大模型深度抽取，解析完成后自动生成闪卡与知识图谱</p>
+      <div class="type-tags">
+        <span class="tag gray">网课录屏 MP4</span>
+        <span class="tag gray">公网视频 URL</span>
+        <span class="tag gray">图文 PDF / Markdown</span>
+        <span class="tag gray">拍照笔记 / 教材</span>
+      </div>
+    </div>
+
+    <!-- 解析进度 -->
+    <div style="margin-bottom:28px;">
+      <div class="task-header" style="margin-bottom:16px;">
+        <h3>解析进度</h3>
+        <a href="#">全部任务 →</a>
+      </div>
+
+      <div class="card progress-card">
+        <div class="progress-header">
+          <div>
+            <div class="progress-title">深度学习 · 第 5 讲.mp4</div>
+          </div>
+          <span class="tag blue">知识点抽取中 · 64%</span>
+        </div>
+        <div class="pipeline">
+          <div class="pipeline-step done"><div class="dot"></div><div class="label">抽帧</div></div>
+          <div class="pipeline-line done"></div>
+          <div class="pipeline-step done"><div class="dot"></div><div class="label">端侧图像理解</div></div>
+          <div class="pipeline-line done"></div>
+          <div class="pipeline-step done"><div class="dot"></div><div class="label">语音转写</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step active"><div class="dot"></div><div class="label">知识点抽取</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">闪卡生成</div></div>
+        </div>
+      </div>
+
+      <div class="card progress-card">
+        <div class="progress-header">
+          <div><div class="progress-title">高数拍照笔记 · 3 张</div></div>
+          <span class="tag cyan">端侧图像理解 · 38%</span>
+        </div>
+        <div class="pipeline">
+          <div class="pipeline-step done"><div class="dot"></div><div class="label">上传</div></div>
+          <div class="pipeline-line done"></div>
+          <div class="pipeline-step active"><div class="dot"></div><div class="label">图像分类</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">文字检测</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">知识点抽取</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">闪卡生成</div></div>
+        </div>
+      </div>
+
+      <div class="card progress-card">
+        <div class="progress-header">
+          <div><div class="progress-title">B 站视频 · 统计学基础（伴生学习）</div></div>
+          <span class="tag gray">排队等待 · 0%</span>
+        </div>
+        <div class="pipeline">
+          <div class="pipeline-step"><div class="dot"></div><div class="label">URL 解析</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">元数据获取</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">语音转写</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">知识点抽取</div></div>
+          <div class="pipeline-line"></div>
+          <div class="pipeline-step"><div class="dot"></div><div class="label">闪卡生成</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 公共内容库 -->
+    <div>
+      <div class="task-header" style="margin-bottom:16px;">
+        <h3>公共内容库</h3>
+        <a href="#">浏览全部 →</a>
+      </div>
+      <div class="public-grid">
+        <div class="card content-card hover">
+          <div class="cover"><span class="tag cyan" style="position:absolute;top:12px;left:12px;">机器学习</span></div>
+          <div class="body">
+            <h4>机器学习入门 30 讲</h4>
+            <p class="meta">128 个知识点 · 2.4k 订阅</p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+              <span class="text-muted" style="font-size:13px;">张教授</span>
+              <button class="btn sm primary">订阅</button>
+            </div>
+          </div>
+        </div>
+        <div class="card content-card hover">
+          <div class="cover" style="background:linear-gradient(135deg,#5FB8FF,#9381FF);"><span class="tag purple" style="position:absolute;top:12px;left:12px;">考研数学</span></div>
+          <div class="body">
+            <h4>考研数学全程班</h4>
+            <p class="meta">96 个知识点 · 1.8k 订阅</p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+              <span class="text-muted" style="font-size:13px;">李老师</span>
+              <button class="btn sm">已订阅</button>
+            </div>
+          </div>
+        </div>
+        <div class="card content-card hover">
+          <div class="cover" style="background:linear-gradient(135deg,#13DDC4,#2EA7FF);"><span class="tag cyan" style="position:absolute;top:12px;left:12px;">操作系统</span></div>
+          <div class="body">
+            <h4>操作系统原理精讲</h4>
+            <p class="meta">74 个知识点 · 960 订阅</p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+              <span class="text-muted" style="font-size:13px;">王老师</span>
+              <button class="btn sm primary">订阅</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,5 @@
+import {fetchPublicDocument,UrlImportError} from '../../src/lib/url-imports/fetch';
+import {prepareUrl} from '../../src/lib/url-imports/prepare';
+import {writeFile} from 'node:fs/promises';
+async function main():Promise<void>{const results=await Promise.all(['https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Introduction','https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'].map(async(url):Promise<object>=>{const started=Date.now();try{const download=await fetchPublicDocument(url),snapshot=await prepareUrl(download,url);return{url,ok:true,milliseconds:Date.now()-started,bytes:download.bytes.length,format:snapshot.prepared.format,title:snapshot.prepared.source.title,units:snapshot.prepared.bookState.unitCount,excerptCharacters:snapshot.prepared.excerpt.length,sourceDigest:snapshot.prepared.source.sourceDigest};}catch(error){return{url,ok:false,milliseconds:Date.now()-started,reason:error instanceof UrlImportError?error.reason:'PARSE_FAILED'};}}));await writeFile('.taskbook-working/url-import-20261018/public-network.json',JSON.stringify(results,null,2));console.log(results);}
+void main();

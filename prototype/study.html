@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习 · 昇思学练 MindSpark</title>
+<link rel="stylesheet" href="prototype.css">
+<style>
+  .study-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+  .video-area { display: flex; flex-direction: column; gap: 16px; }
+  .video-player {
+    aspect-ratio: 16/9;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #15142a 0%, #1a1835 100%);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .video-player::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(147,129,255,0.08), transparent 70%);
+  }
+  .play-btn { width: 72px; height: 72px; border-radius: 50%; background: var(--grad-primary); display: grid; place-items: center; font-size: 28px; color: #fff; box-shadow: var(--glow-primary); cursor: pointer; position: relative; z-index: 1; }
+  .video-caption {
+    position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+    padding: 8px 18px; border-radius: var(--radius-pill);
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+    color: #fff; font-size: 14px;
+  }
+  .video-controls {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  }
+  .video-progress { flex: 1; height: 4px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.2); }
+  .video-progress > span { display: block; height: 100%; width: 27%; background: var(--grad-primary); border-radius: var(--radius-pill); }
+  .tabs { display: flex; gap: 8px; margin-top: 8px; }
+  .tab { padding: 10px 18px; border-radius: var(--radius-pill); cursor: pointer; color: var(--text-muted); transition: all .2s ease; }
+  .tab.active { background: var(--surface-active); color: var(--text); }
+  .note-list { display: flex; flex-direction: column; gap: 12px; }
+  .note-item { padding: 16px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); }
+  .note-time { color: var(--primary); font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .qa-bubble { padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 12px; }
+  .qa-bubble.q { background: var(--surface); border: 1px solid var(--border); }
+  .qa-bubble.a { background: rgba(147, 129, 255, 0.08); border: 1px solid rgba(147, 129, 255, 0.2); }
+  .point-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .point-row:last-child { border-bottom: none; }
+  .point-bar { width: 100px; height: 6px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.08); }
+  .point-bar > span { display: block; height: 100%; border-radius: var(--radius-pill); }
+</style>
+</head>
+<body>
+  <div class="aurora-bg"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">M</div>
+      <div><div class="name">昇思学练</div><div class="sub">MINDSPARK</div></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">学习空间</div>
+      <a class="sidebar-link" href="dashboard.html">🏠 工作台</a>
+      <a class="sidebar-link" href="import.html">📁 内容库 / 导入</a>
+      <a class="sidebar-link active" href="study.html">▶ 学习</a>
+      <a class="sidebar-link" href="review.html">🔄 复习</a>
+      <a class="sidebar-link" href="graph.html">🕸 图谱看板</a>
+    </div>
+    <div class="sidebar-user">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;">秦</div>
+        <div><div style="font-weight:700;">秦文浩</div><div style="font-size:12px;color:var(--text-muted);">LV.5 · 进阶学者</div></div>
+      </div>
+      <div class="chip">● 端侧推理就绪 · MindSpore</div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <input class="input topbar-search" placeholder="搜索内容、知识点或笔记…">
+    <div class="topbar-tools">
+      <span class="badge streak">🔥 12 天</span>
+      <span class="badge xp">⚡ 3,240 XP</span>
+      <span style="font-size:18px;cursor:pointer;">🔔</span>
+      <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--grad-primary);display:grid;place-items:center;color:#fff;font-weight:700;cursor:pointer;">秦</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>卷积神经网络与反向传播</h1>
+        <p>深度学习 · 第 5 讲 · 46:12 · 24 个知识点 · 12 张闪卡</p>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn">⛓ 伴生学习</button>
+        <button class="btn primary">导出笔记</button>
+      </div>
+    </div>
+
+    <div class="study-layout">
+      <div class="video-area">
+        <span class="tag cyan" style="width:fit-content;">● AI 解析侧栏已就绪</span>
+        <div class="video-player">
+          <div class="play-btn">▶</div>
+          <div class="video-caption">这正是反向传播的核心：链式法则</div>
+          <div class="video-controls">
+            <span style="font-size:13px;">▶</span>
+            <div class="video-progress"><span></span></div>
+            <span style="font-size:13px;color:var(--text-secondary);">12:34 / 46:12</span>
+            <span style="font-size:13px;">⛶</span>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab active">笔记 12</div>
+          <div class="tab">转写文本</div>
+          <div class="tab">知识点 24</div>
+        </div>
+        <div class="note-list">
+          <div class="note-item">
+            <div class="note-time">12:18</div>
+            <p>这一步的链式法则展开是考点，课后要重推一遍</p>
+          </div>
+          <div class="note-item">
+            <div class="note-time">23:47</div>
+            <p>池化层丢掉位置信息，后续用 skip connection 补偿</p>
+          </div>
+          <div class="note-item">
+            <div class="note-time">36:05</div>
+            <p>反向传播四个基本公式，注意维度对齐</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-size:16px;">内容问答</h3>
+            <span class="tag cyan">基于本讲解析</span>
+          </div>
+          <div class="qa-bubble q">这个定理的适用条件是什么？</div>
+          <div class="qa-bubble a">
+            <p>要求输入具有局部平移不变性，且激活函数可微；对边界需做 padding 补齐，否则输出尺寸会逐层收缩。</p>
+            <p style="margin-top:8px;font-size:12px;color:var(--accent-text);">转写段落 · 04:12</p>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input class="input" placeholder="就当前内容提问…">
+            <button class="btn primary" style="width:44px;height:44px;padding:0;border-radius:50%;">➤</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-size:16px;">本讲知识点</h3>
+            <a href="#" style="font-size:13px;color:var(--primary);">全部 24</a>
+          </div>
+          <div class="point-row">
+            <span>卷积与感受野</span>
+            <div style="display:flex;align-items:center;gap:10px;"><div class="point-bar"><span style="width:86%;background:var(--accent);"></span></div><span style="color:var(--accent-text);font-weight:700;">0.86</span></div>
+          </div>
+          <div class="point-row">
+            <span>池化与下采样</span>
+            <div style="display:flex;align-items:center;gap:10px;"><div class="point-bar"><span style="width:72%;background:var(--warning);"></span></div><span style="color:var(--warning);font-weight:700;">0.72</span></div>
+          </div>
+          <div class="point-row">
+            <span>反向传播推导</span>
+            <div style="display:flex;align-items:center;gap:10px;"><div class="point-bar"><span style="width:42%;background:var(--danger);"></span></div><span style="color:var(--danger);font-weight:700;">0.42</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

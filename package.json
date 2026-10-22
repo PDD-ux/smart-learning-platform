@@ -1,0 +1,85 @@
+{
+  "name": "smart-learning-platform",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
+  },
+  "description": "基于 MindSpore 与 AI 大模型融合的智能学习平台",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "dev": "next dev --webpack -H 127.0.0.1 -p 3000",
+    "demo:check": "tsx scripts/demo/local-demo.ts check",
+    "demo:start": "tsx scripts/demo/local-demo.ts start",
+    "demo:prepare": "tsx scripts/demo/prepare-demo-account.ts",
+    "demo:ascend-port": "tsx scripts/demo/set-ascend-port.ts",
+    "demo:walkthrough": "tsx scripts/demo/e2e-walkthrough.ts",
+    "build": "next build --webpack",
+    "start": "next start -p 3000",
+    "lint": "eslint src --max-warnings=0",
+    "type-check": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "face:cleanup": "tsx scripts/cleanup-expired-face-photos.ts",
+    "face:setup": "node scripts/face/local-service.cjs setup",
+    "face:start": "node scripts/face/local-service.cjs start",
+    "face:status": "node scripts/face/local-service.cjs status",
+    "face:stop": "node scripts/face/local-service.cjs stop",
+    "perf:postgres": "tsx scripts/performance/real-postgresql.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "overrides": {
+    "source-map-js": "1.2.2",
+    "tailwindcss": {
+      "postcss-selector-parser": "7.1.6"
+    },
+    "postcss-nested": {
+      "postcss-selector-parser": "7.1.6"
+    }
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.637.0",
+    "@aws-sdk/s3-request-presigner": "^3.637.0",
+    "@prisma/client": "^5.19.1",
+    "@xyflow/react": "^12.12.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.12.0",
+    "htmlparser2": "12.0.0",
+    "ioredis": "^5.4.1",
+    "ipaddr.js": "2.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "16.4.1",
+    "pdfjs-dist": "4.10.38",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "saxes": "6.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^24.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "@vitest/ui": "5.0.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.1",
+    "happy-dom": "21.0.1",
+    "postcss": "8.5.30",
+    "prisma": "^5.19.1",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.4"
+  }
+}

@@ -1,0 +1,6 @@
+# 昇腾专用依赖（tasks.md §5.1 / §5.3）
+# 2026-09-19 已在 ModelArts aarch64-snt9b 实测通过：
+#   镜像：mindspore_2.7.1-cann_8.3.rc1-py_3.11-euler2.10.11-aarch64-snt9b
+#   wheel：mindspore_lite-2.7.1-cp311-cp311-linux_aarch64.whl
+# wheel 需从 MindSpore Lite 官方下载页取得后本地安装；不能换用 CANN 8.5.2 镜像。
+# 参考：https://www.mindspore.cn/lite/docs/en/r2.7.1/use/downloads.html

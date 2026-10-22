@@ -1,0 +1,40 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type { ReactElement, ReactNode } from 'react';
+const m=vi.hoisted(()=>({ contents:vi.fn(),courses:vi.fn(),adminCourses:vi.fn(),adminCourse:vi.fn(),prepareCourse:vi.fn(),changeCourse:vi.fn() }));
+vi.mock('@/services/api',()=>({api:m}));
+vi.mock('@/components/admin/AdminShell',()=>({AdminShell:({children}:{children:ReactNode}):ReactElement=><main>{children}</main>}));
+import { CourseLibrary } from '@/components/courses/CourseLibrary';
+import { CourseReader } from '@/components/courses/CourseReader';
+import AdminCourses from '@/app/admin/courses/page';
+const course={canPublish:true,courseId:'550e8400-e29b-41d4-a716-446655440000',title:'自建中文课堂',description:'只读演示',contentType:'video' as const,format:'mp4',durationSec:3,pageCount:null,discussionEnabled:false,version:1,publishedAt:null,resourceUrl:'/api/admin/courses/test/media',snapshot:{transcripts:[],textBlocks:[],knowledgePoints:[],generatedNote:null},state:'DRAFT' as const,prepared:true,include:{transcripts:false,textBlocks:false,knowledgePoints:false,generatedNote:false},rightsConfirmed:true,rightsStatement:'自建素材'};
+beforeEach(():void=>{vi.clearAllMocks();m.contents.mockResolvedValue({items:[{contentId:'own',title:'本人课堂',status:'已就绪'},{contentId:'pending',title:'未就绪',status:'上传中'}]});m.adminCourses.mockResolvedValue({page:1,pageSize:20,total:0,items:[]});m.prepareCourse.mockResolvedValue(course);m.changeCourse.mockResolvedValue({...course,state:'PUBLISHED',version:2});m.courses.mockResolvedValue({page:1,pageSize:20,total:1,items:[course]});});afterEach(cleanup);
+it('lists published shared courses independently of private material',async():Promise<void>=>{render(<CourseLibrary/>);expect((await screen.findByRole('link',{name:'阅读共享课程 →'})).getAttribute('href')).toBe('/courses/'+course.courseId);fireEvent.change(screen.getByLabelText('搜索共享课程'),{target:{value:'中文'}});expect(m.courses).toHaveBeenCalledTimes(1);fireEvent.click(screen.getByRole('button',{name:'搜索课程'}));await waitFor(()=>expect(m.courses).toHaveBeenLastCalledWith(1,'中文'));});
+it('uses an error state without a fabricated zero on failed list reads',async():Promise<void>=>{m.courses.mockRejectedValueOnce(new Error('offline'));render(<CourseLibrary/>);await screen.findByText('共享课程读取失败，请重试');expect(screen.queryByText('已发布 · 0 门')).toBeNull();});
+it('keeps readonly reader free of personal write and AI generation controls',():void=>{render(<CourseReader course={course}/>);expect(screen.queryByRole('textbox')).toBeNull();expect(screen.queryByRole('button',{name:'生成摘要'})).toBeNull();expect(screen.getByText(/本页不写入个人学习进度/)).toBeTruthy();});
+it('renders copied plain text without executing source HTML',():void=>{render(<CourseReader course={{...course,snapshot:{...course.snapshot,generatedNote:{markdown:'<script>unsafe()</script>',sourceCount:1,generatedAt:'2026-10-14T00:00:00Z'}}}}/>);expect(screen.getByText('<script>unsafe()</script>')).toBeTruthy();expect(document.querySelector('script')).toBeNull();});
+async function prepareForm():Promise<void>{await screen.findByRole('option',{name:'本人课堂'});fireEvent.change(screen.getByLabelText('本人已就绪资料'),{target:{value:'own'}});fireEvent.change(screen.getByLabelText('传播授权说明'),{target:{value:'自建测试素材'}});fireEvent.click(screen.getByLabelText('我持有该资料及所选内容的传播授权，允许平台登录用户阅读'));}
+it('keeps publication controls in the teacher workspace, not the administrator',async():Promise<void>=>{
+  render(<AdminCourses/>);
+  await screen.findByText('共 0 门可见课程；平台管理员只能下架已发布内容。');
+  expect(screen.queryByLabelText('本人已就绪资料')).toBeNull();
+  expect(screen.queryByLabelText('传播授权说明')).toBeNull();
+  expect(screen.queryByRole('button',{name:'准备独立副本（尚不公开）'})).toBeNull();
+  expect(screen.queryByRole('button',{name:'确认发布课程'})).toBeNull();
+  expect(m.adminCourses).toHaveBeenCalledWith(1);
+  expect(m.prepareCourse).not.toHaveBeenCalled();
+});
+it('allows an administrator to withdraw a published copy only after confirmation',async():Promise<void>=>{
+  m.adminCourses.mockResolvedValue({page:1,pageSize:20,total:1,items:[{...course,state:'PUBLISHED'}]});
+  m.adminCourse.mockResolvedValue({...course,state:'PUBLISHED',version:2,canPublish:false});
+  m.changeCourse.mockResolvedValue({...course,state:'WITHDRAWN',version:3});
+  render(<AdminCourses/>);
+  fireEvent.click(await screen.findByRole('button',{name:'查看课程 · 自建中文课堂'}));
+  await screen.findByRole('region',{name:'共享课程发布预览'});
+  expect(screen.queryByRole('button',{name:'确认发布课程'})).toBeNull();
+  expect((screen.getByRole('button',{name:'确认下架课程'}) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByLabelText('确认下架该课程'));
+  fireEvent.click(screen.getByRole('button',{name:'确认下架课程'}));
+  await screen.findByText('课程已下架，后续媒体请求会被拒绝。');
+  expect(m.changeCourse).toHaveBeenCalledWith(course.courseId,2,'withdraw');
+});

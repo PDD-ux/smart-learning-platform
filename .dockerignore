@@ -1,0 +1,79 @@
+# ============================================================
+# Next.js 主项目 · .dockerignore
+# 减小构建上下文，加快 Docker 构建速度
+# ============================================================
+
+# 依赖（由 deps 阶段独立安装）
+node_modules
+.pnp
+.pnp.js
+
+# 构建产物
+.next
+out
+build
+dist
+
+# 测试与开发文件
+coverage
+.nyc_output
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+tests
+
+# 本地配置与环境
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+
+# 调试与日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+npm_install.log
+npm_install_err.log
+
+# 编辑器与系统
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git 与 workbuddy 元数据
+.git
+.gitignore
+.gitattributes
+.workbuddy
+
+# Docker 自身
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 设计文档（无需入镜像）
+.codeartsdoer
+design
+*.md
+
+# 临时文件
+tmp
+temp
+.cache
+.taskbook-working
+uploads
+docker-data
+postgres-data
+redis-data
+minio-data
+**/__pycache__
+**/*.pyc
+services/mindspore-infer/models
+services/mindspore-infer/dataset

@@ -1,0 +1,111 @@
+# ============================================================
+# 项目级 .gitignore（根目录版本）
+# -------------------------------------------------------------
+# 注意 .codeartsdoer/.gitignore 只管工具目录，不要混用
+# ============================================================
+
+# ----- Node / Next.js -----
+node_modules/
+.next/
+.next-corrupt-*/
+out/
+dist/
+build/
+.turbo/
+
+# ----- 测试 / 覆盖率 -----
+coverage/
+*.lcov
+
+# ----- 环境与密钥（绝对不入库）-----
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+
+# ----- 日志与运行时残留 -----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+npm_install*.log
+
+# ----- 编辑器与系统 -----
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ----- TypeScript -----
+*.tsbuildinfo
+next-env.d.ts
+
+# ----- Python 缓存 -----
+__pycache__/
+*.py[cod]
+
+# ----- Prisma -----
+prisma/migrations/dev.db*
+
+# ----- Docker / 临时数据 -----
+docker-data/
+postgres-data/
+redis-data/
+minio-data/
+
+# ----- 上传与缓存（不进 git）-----
+uploads/
+tmp/
+.taskbook-working/
+.tmp-docx-*/
+.cache/
+.eslintcache
+
+# ----- IDE 临时 -----
+.history/
+
+# ----- WorkBuddy 内部文件（不进 git）-----
+.workbuddy/memory/
+# 注意：根目录的 PROGRESS.md 是项目公开进度，要进 git；只有 .workbuddy/memory/ 下的 AI 内部进度不进
+
+# ----- MindSpore 训练/编译产物（通过受控模型仓库或部署卷分发） -----
+services/mindspore-infer/models/*.ckpt
+services/mindspore-infer/models/*.mindir
+services/mindspore-infer/models/*.part
+services/mindspore-infer/models/ch_dict.txt
+services/mindspore-infer/models/*.om
+services/mindspore-infer/models/om/
+
+# ----- MindSpore 训练数据（仅保留目录说明和素材台账）-----
+services/mindspore-infer/dataset/**/*.jpg
+services/mindspore-infer/dataset/**/*.jpeg
+services/mindspore-infer/dataset/**/*.png
+services/mindspore-infer/dataset/**/*.webp
+services/mindspore-infer/dataset/**/*.mp4
+services/mindspore-infer/dataset/**/synthetic-manifest.csv
+services/mindspore-infer/dataset/**/holdout-manifest.csv
+
+# ----- 个人信息（简历含手机号/邮箱/住址，禁止入库）-----
+docs/简历-通用版.md
+scripts/build_resume_template.py
+
+# ----- AI / 编辑器工具目录（不进 git）-----
+.codeartsdoer/
+.cursor/
+.codex-tmp/
+
+# ----- 验收与性能日志（运行产物，不进 git）-----
+docs/**/*.log
+
+# ----- 演练脚本运行产物（每次跑都会重新生成）-----
+e2e-walkthrough-report.json

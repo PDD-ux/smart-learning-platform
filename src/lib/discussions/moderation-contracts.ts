@@ -1,0 +1,11 @@
+import { z } from 'zod';
+import { plainText, type DiscussionThreadDto, type DiscussionReplyDto } from './contracts';
+export const threadModeration = z.object({expectedVersion:z.number().int().min(1), action:z.enum(['hide','restore','pin','unpin']), reason:plainText(500)}).strict();
+export const replyModeration = threadModeration.extend({action:z.enum(['hide','restore'])});
+export const courseDiscussion = z.object({expectedVersion:z.number().int().min(1),enabled:z.boolean(),reason:plainText(500)}).strict();
+export const reportCreate = z.object({replyId:z.string().uuid().optional(),reason:plainText(500),requestId:z.string().uuid()}).strict();
+export const reportHandle = z.object({expectedVersion:z.number().int().min(1),resolution:plainText(500)}).strict();
+export type AdminThreadDto = DiscussionThreadDto & {hidden:boolean;deleted:boolean;courseTitle:string;courseState:string;courseVersion:number;discussionEnabled:boolean};
+export type AdminReplyDto = DiscussionReplyDto & {hidden:boolean};
+export type ReportDto = {id:string;courseId:string;threadId:string;replyId:string|null;reason:string;state:'OPEN'|'HANDLED';version:number;resolution:string|null;handledAt:string|null;createdAt:string};
+export type ModerationList<T> = {items:T[];total:number;page:number;pageSize:number};

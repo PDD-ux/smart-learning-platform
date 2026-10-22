@@ -1,0 +1,17 @@
+{
+  "description": "Manual transcription frozen before the long-line fix; CER ignores punctuation/whitespace, but does not substitute words. Development regions and a different-source Go editor check are not a representative accuracy dataset.",
+  "regions": [
+    {"frame": "frame_002.jpg", "roi": [180, 220, 1500, 420], "text": "言语理解与表达"},
+    {"frame": "frame_003.jpg", "roi": [820, 510, 1410, 685], "text": "基础理论"},
+    {"frame": "frame_014.jpg", "roi": [70, 250, 1400, 310], "text": "5、（2025联考）我们要看到，如果对诱骗直播打赏不加遏制，一些主播会生出效仿之心，"},
+    {"frame": "frame_014.jpg", "roi": [70, 330, 1400, 385], "text": "加剧网络直播的乱象，影响行业的长远发展。而被害人巨额打赏后往往伴随网贷，个人"},
+    {"frame": "frame_014.jpg", "roi": [70, 405, 1400, 465], "text": "生活很可能陷入。因此，对诱骗直播打赏，需要认真思索刑法介入的可能性。唯"},
+    {"frame": "frame_014.jpg", "roi": [70, 480, 1400, 540], "text": "其如此，直播行业的发展才可能。"},
+    {"frame": "frame_014.jpg", "roi": [70, 560, 1350, 615], "text": "依次填入画横线部分最恰当的一项是："},
+    {"frame": "sample3-real-lecture.jpg", "roi": [590, 110, 850, 150], "text": "package main"},
+    {"frame": "sample3-real-lecture.jpg", "roi": [590, 175, 850, 215], "text": "import fmt"},
+    {"frame": "sample3-real-lecture.jpg", "roi": [650, 275, 1070, 312], "text": "fmt.Println(Cleaning up!)"},
+    {"frame": "sample3-real-lecture.jpg", "roi": [650, 405, 1040, 444], "text": "fmt.Println(Working!)"},
+    {"frame": "sample3-real-lecture.jpg", "roi": [650, 535, 900, 573], "text": "defer cleanup()"}
+  ]
+}

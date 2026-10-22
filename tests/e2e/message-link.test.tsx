@@ -1,0 +1,11 @@
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+import type { MessageList } from '@/lib/discussions/notifications';
+const m = vi.hoisted(() => ({ messages: vi.fn() }));
+vi.mock('@/services/api', async (original) => { const actual = await original<typeof import('@/services/api')>(); return { ...actual, api: m }; });
+import { ApiClientError } from '@/services/api';
+import { MessageLink } from '@/components/courses/MessageLink';
+beforeEach((): void => { vi.clearAllMocks(); }); afterEach(cleanup);
+it('does not expose a message link before the formal gate opens', async (): Promise<void> => { m.messages.mockRejectedValue(new ApiClientError('关闭',404,'NOT_FOUND')); render(<MessageLink />); await act(async (): Promise<void> => { await Promise.resolve(); }); expect(screen.queryByRole('link')).toBeNull(); });
+it('shows unavailable count instead of zero when the read fails', async (): Promise<void> => { m.messages.mockRejectedValue(new Error('offline')); render(<MessageLink />); expect(await screen.findByRole('link', { name: '消息，计数暂不可用' })).toBeTruthy(); expect(screen.queryByText('消息 · 0')).toBeNull(); });
+it('rejects stale count and stops focus rereads after unmount', async (): Promise<void> => { const row: MessageList = { page:1,pageSize:20,total:0,unreadCount:0,asOf:'2026-10-14T00:00:00Z',items:[] }; let complete: (value: MessageList) => void = (): void => undefined; m.messages.mockImplementationOnce((): Promise<MessageList> => new Promise<MessageList>((resolve): void => { complete = resolve; })).mockResolvedValue({ ...row, unreadCount: 2 }); const view = render(<MessageLink />); await act(async (): Promise<void> => { window.dispatchEvent(new Event('focus')); }); await screen.findByRole('link', { name: '消息，2条未读' }); await act(async (): Promise<void> => { complete({ ...row, unreadCount: 9 }); }); expect(screen.queryByRole('link', { name: '消息，9条未读' })).toBeNull(); view.unmount(); window.dispatchEvent(new Event('focus')); expect(m.messages).toHaveBeenCalledTimes(2); });

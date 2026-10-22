@@ -1,0 +1,17 @@
+# §25.5 共享课程具体实现契约
+
+2026-10-14已实现并在本地迁移；契约先于代码。管理员列表返回CourseSummary加state/prepared，不返回整份大快照；完整AdminCourse仅详情/准备/动作返回。Cookie原access JWT补Bearer格式校验用于原生媒体，显式Authorization仍优先。CourseReader按共享ID与定位query隔离，刷新后当前权限重查；25.6新增discussionAvailable区分正式门控与课程discussionEnabled写入开关；门控默认关闭且无入口，关闭课程讨论仍可读旧主题，具体见09。实际正式素材未选定，不发布原三份。
+
+14:31验收补充（实现前调整）：为避免发布者删除后共享副本无法下架，管理员列表/预览包含本人草稿以及曾经明确发布过的共享副本（publishedAt非空），不读取其他管理员从未发布的私人草稿。当前任一管理员可下架已公开副本；首次发布/重新发布仍必须publisherId为本人，不根据管理角色推定传播授权。AdminCourse新增canPublish，只表示当前本人发布资格，不替代prepared/授权/版本校验。列表不泄露来源ID、发布者账号或私人数据；UI明确管理员可下架其他已公开副本，已下架的非本人副本没有重新发布按钮。
+
+实现前落地，继承07私人/共享边界；本编号只有共享发布与只读，不提前实现讨论/消息。SharedCourse独立表，id UUID；publisherId/sourceContentId可空外键，onDelete SET NULL，副本不随账号/源资料删除。字段title/description、contentType/format、durationSec/pageCount、fileSizeBytes、mediaKey、pageKeys(JSON内部页图键)、snapshot(JSON)、include(JSON四布尔)、rightsStatement、rightsConfirmed、state(DRAFT/PUBLISHED/WITHDRAWN)、version默认1、preparedAt/publishedAt/createdAt/updatedAt、requestId UUID及requestDigest。unique(publisherId,requestId)，index(state,publishedAt,id)、index(publisherId,createdAt)。准备中DRAFT/preparedAt=null仅内部锁，不允许发布；失败删除本次预留行与自身shared-courses/id前缀，进程中断留下未准备草稿明确不可发布，不自动重试复制或暴露给学生。
+
+管理员当前数据库角色必须admin，发布来源必须本人READY；include四布尔显式指定transcripts/textBlocks/knowledgePoints/generatedNote。快照只存{transcripts:[{startMs,endMs,text}],textBlocks:[{ref,text}],knowledgePoints:[{title,summary,tags,importance,refs}],generatedNote:null|{markdown,sourceCount,generatedAt}}，严格白名单，不含原ID/用户字段/个人笔记/题目/成绩/QA。来源及选取项先校验真实ref，转写范围；最多10000转写/20000块/2000点、JSON10MiB，单视频≤8GiB、单文档≤50MiB、文档1..500页。超限/错误拒绝，不偷偷截断。允许原已就绪且AI失败的资料只发布媒体，无自动AI请求。PDF先复制独立原件并准备所有页PNG成功；PNG/JPEG一页复用独立媒体；MD/TXT只读纯文本，响应不按HTML执行。媒体键只能shared-courses/UUID/media.ext，页图只能同前缀pages/整数.png。存储服务端流读/写沿用StorageClient，S3 put增加内部contentLength，无新依赖。
+
+POST /api/admin/courses继承07入参，title trim1..120、description trim0..2000、rightsStatement trim1..500、rightsConfirmed=true、requestId UUID，未知字段拒绝。同publisher/requestId相同规范化payload重复返回既有已准备草稿/当前状态；不同payload或准备中409 SHARED_COURSE_CONFLICT。复制失败503 STORAGE_UNAVAILABLE，不返回草稿成功。GET /api/admin/courses分页返回本人草稿及曾发布过的副本；GET/:id同范围预览，其他未发布草稿404。PATCH/:id{expectedVersion整数>=1,action:publish|withdraw}，CAS冲突409；首次发布必须prepared、媒体及全部页图完整、授权成立；下架后可按同一快照重新发布。discussionEnabled始终false，本编号不开放讨论切换。准备提交/状态提交事务复核当前admin；其他管理员只可下架曾发布副本，重新发布仍限原发布者；审计course.prepare/publish/withdraw同事务，只含目标动作不含凭据/正文。
+
+GET /api/courses与GET /api/admin/courses q trim0..120可选、page1..100000默认1、pageSize1..50默认20，拒绝重复参数；published按publishedAt desc/id asc，管理列表createdAt desc/id asc。学生DTO白名单{courseId,title,description,contentType:video|document,format,durationSec,pageCount,discussionEnabled:false,version,publishedAt}；详情加{resourceUrl,snapshot}。不含来源ID/owner/media键/授权说明。管理员详情另有state/prepared/version/include/rightsStatement/rightsConfirmed及admin同源资源URL；本人已准备草稿及曾明确发布过的共享副本可预览。
+
+GET/HEAD /api/courses/:id/media、/pages/:page，以及同结构/api/admin/courses/:id预览媒体：Bearer或原HttpOnly access Cookie；每次先检查账号仍存在、课程当前状态（学生只published，管理员本人已准备草稿或曾公开且prepared的副本）；非法/匿名401、未发布/不存在404、页码不符400。private,no-store/Vary Cookie,Authorization，nosniff；无302或存储直链。单Range整数安全值bytes=start-end/start-/-suffix，非法或多Range416并带总大小；合法206，HEAD只返回对应头无正文。下架后的旧URL、下一Range/页图请求拒绝；已交付字节不能撤回，正在读取的流可结束。
+
+/admin/courses选择本人已就绪资料和可见项，说明排除私人记录；点击“准备独立副本”不公开，再预览实际媒体和完整选取快照后确认发布。授权未选/说明为空不能准备；准备/写入互斥，失败保留输入，版本冲突提示重读不覆盖。学习中心增我的资料/共享课程标签，切换不卸载导入草稿/进度；共享列表独立分页空错状态。/courses/:id只读视频/图片/PDF页图/纯文本和已选快照及生成时间/需核对，无笔记写入/个人进度/练习/AI按钮或假评论。真实定位仅对应共享id并在界内，点击暂停。
